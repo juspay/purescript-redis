@@ -29,7 +29,7 @@ var Redis = require("ioredis");
 var bluebird = require("bluebird");
 var env = process.env.NODE_ENV || 'DEV';
 
-bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(Redis.prototype);
 
 var _newCache = function (options) {
   return function () {
