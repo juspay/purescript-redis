@@ -1,0 +1,24 @@
+{
+  "name": "purescript-redis",
+  "version": "1.0.0",
+  "description": "purescript wrapper for node_redis",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/juspay/purescript-redis"
+  },
+  "keywords": [
+    "redis",
+    "node_redis"
+  ],
+  "author": "iamnewspecies",
+  "license": "https://github.com/juspay/purescript-redis/blob/master/LICENSE",
+  "homepage": "https://github.com/juspay/purescript-redis/README.md",
+  "dependencies": {
+    "bluebird": "^3.5.1",
+    "redis": "^2.8.0"
+  }
+}

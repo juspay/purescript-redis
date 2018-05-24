@@ -1,0 +1,26 @@
+{
+  "name": "purescript-node-redis",
+  "authors": [
+    "newspecies"
+  ],
+  "description": "purescript wrapper for node_redis",
+  "main": "index.js",
+  "keywords": [
+    "redis",
+    "node_redis"
+  ],
+  "license": "https://github.com/juspay/purescript-redis/blob/master/LICENSE",
+  "homepage": "https://github.com/juspay/purescript-redis/blob/master/README.md",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "purescript-aff-promise": "^0.6.0",
+    "purescript-options": "^3.1.0"
+  }
+}
