@@ -49,9 +49,6 @@ db = opt "db"
 socketKeepAlive :: Option CacheConnOpts Boolean
 socketKeepAlive = opt "socket_keepalive"
 
-tryAfter :: Option CacheConnOpts Int
-tryAfter = opt "try_after"
-
 sentinels :: Option CacheConnOpts (Array { host :: String, port :: Int })
 sentinels = opt "sentinels"
 
@@ -59,7 +56,7 @@ name :: Option CacheConnOpts String
 name = opt "name"
 
 retryStrategy :: Option CacheConnOpts (CacheConnOpts -> Int)
-retryStrategy = opt "retry_strategy"
+retryStrategy = opt "retryStrategy"
 
 foreign import setKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import getKeyJ :: CacheConn -> String -> Promise String
