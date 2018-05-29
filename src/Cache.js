@@ -25,15 +25,18 @@
 
 "use strict";
 
-var Redis = require("ioredis");
+// var Redis = require("ioredis");
+var redis = require("redis");
 var bluebird = require("bluebird");
 var env = process.env.NODE_ENV || 'DEV';
 
-bluebird.promisifyAll(Redis.prototype);
+// bluebird.promisifyAll(Redis.prototype);
+bluebird.promisifyAll(redis.RedisClient.prototype);
 
 var _newCache = function (options) {
   return function () {
-    var newClient = new Redis(options);
+    // var newClient = new Redis(options);
+    var newClient = redis.createClient(options);
     newClient.on("error", errorHandler)
     return newClient;
   };
