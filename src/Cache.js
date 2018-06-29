@@ -33,10 +33,34 @@ var env = process.env.NODE_ENV || 'DEV';
 // bluebird.promisifyAll(Redis.prototype);
 bluebird.promisifyAll(redis.RedisClient.prototype);
 
+var zipkinFlag = process.env.ZIPKIN_ENABLE || "false"
+var zipkinRedisFlag = process.env.ZIPKIN_REDIS || "true"
+
+var zipkinClient = null
+var tracer = null
+
+if (zipkinFlag === "true" && zipkinRedisFlag === "true") {
+  var zipkin = require('zipkin')
+  var logger = require('zipkin-transport-http')
+  var CLSContext = require('zipkin-context-cls');
+  zipkinClient = require('zipkin-instrumentation-redis')
+
+  var ctxImpl = new CLSContext()
+  var endpoint = process.env.ZIPKIN_URL || 'http://localhost:9411'
+  var serviceName = process.env.SERVICE_NAME + '_redis'
+
+  var recorder = new zipkin.BatchRecorder({
+    logger: new logger.HttpLogger({
+      endpoint: endpoint + '/api/v1/spans'
+    })
+  });
+  tracer = new zipkin.Tracer({localServiceName: serviceName, ctxImpl: ctxImpl, recorder: recorder})
+}
+
 var _newCache = function (options) {
   return function () {
     // var newClient = new Redis(options);
-    var newClient = redis.createClient(options);
+    var newClient = zipkinFlag === "true" && zipkinRedisFlag === "true" ? zipkinClient(tracer, redis, options) : redis.createClient(options)
     newClient.on("error", errorHandler)
     return newClient;
   };
@@ -88,9 +112,11 @@ var expireJ = function(client) {
 
 var incrJ = function(client) {
   return function(key) {
-    return client.incr(key);
+    return client.incr(key, callback);
   }
 }
+
+var callback = function(err, value) { return; }
 
 var setHashJ = function(client) {
   return function(key) {
@@ -103,7 +129,7 @@ var setHashJ = function(client) {
 var getHashKeyJ = function(client) {
   return function(key) {
     return function(field) {
-      return client.hget(key, field);
+      return client.hget(key, field, callback);
     }
   }
 }
@@ -118,7 +144,7 @@ var publishToChannelJ = function(client) {
 
 var subscribeJ = function(client) {
   return function(channel) {
-    return client.subscribe(channel);
+    return client.subscribe(channel, callback);
   }
 }
 
