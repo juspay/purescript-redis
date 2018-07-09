@@ -33,34 +33,33 @@ var env = process.env.NODE_ENV || 'DEV';
 // bluebird.promisifyAll(Redis.prototype);
 bluebird.promisifyAll(redis.RedisClient.prototype);
 
-var zipkinFlag = process.env.ZIPKIN_ENABLE || "false"
-var zipkinRedisFlag = process.env.ZIPKIN_REDIS || "true"
-
-var zipkinClient = null
-var tracer = null
-
-if (zipkinFlag === "true" && zipkinRedisFlag === "true") {
-  var zipkin = require('zipkin')
-  var logger = require('zipkin-transport-http')
-  var CLSContext = require('zipkin-context-cls');
-  zipkinClient = require('zipkin-instrumentation-redis')
-
-  var ctxImpl = new CLSContext()
-  var endpoint = process.env.ZIPKIN_URL || 'http://localhost:9411'
-  var serviceName = process.env.SERVICE_NAME + '_redis'
-
-  var recorder = new zipkin.BatchRecorder({
-    logger: new logger.HttpLogger({
-      endpoint: endpoint + '/api/v1/spans'
-    })
-  });
-  tracer = new zipkin.Tracer({localServiceName: serviceName, ctxImpl: ctxImpl, recorder: recorder})
-}
-
 var _newCache = function (options) {
   return function () {
     // var newClient = new Redis(options);
-    var newClient = zipkinFlag === "true" && zipkinRedisFlag === "true" ? zipkinClient(tracer, redis, options) : redis.createClient(options)
+    var zipkinFlag = process.env.ZIPKIN_ENABLE || "false"
+    var zipkinRedisFlag = process.env.ZIPKIN_REDIS || "true"
+    var newClient = null
+
+    if (zipkinFlag === "true" && zipkinRedisFlag === "true") {
+      var zipkin = require('zipkin')
+      var logger = require('zipkin-transport-http')
+      var CLSContext = require('zipkin-context-cls');
+      var zipkinClient = require('zipkin-instrumentation-redis')
+
+      var ctxImpl = new CLSContext()
+      var endpoint = process.env.ZIPKIN_URL || 'http://localhost:9411'
+      var serviceName = process.env.SERVICE_NAME + '_redis'
+
+      var recorder = new zipkin.BatchRecorder({
+        logger: new logger.HttpLogger({
+          endpoint: endpoint + '/api/v1/spans'
+        })
+      });
+      var tracer = new zipkin.Tracer({localServiceName: serviceName, ctxImpl: ctxImpl, recorder: recorder})
+      newClient = zipkinClient(tracer, redis, options)
+    } else {
+      newClient = redis.createClient(options)
+    }
     newClient.on("error", errorHandler)
     return newClient;
   };
