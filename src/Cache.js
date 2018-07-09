@@ -95,7 +95,7 @@ var incrJ = function(client) {
 var setHashJ = function(client) {
   return function(key) {
     return function(value) {
-      return pubClient.hmset(key, value);
+      return client.hmset(key, value);
     }
   }
 }
