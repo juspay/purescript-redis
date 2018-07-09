@@ -36,8 +36,8 @@ bluebird.promisifyAll(redis.RedisClient.prototype);
 var _newCache = function (options) {
   return function () {
     // var newClient = new Redis(options);
-    var zipkinFlag = process.env.ZIPKIN_ENABLE || "false"
-    var zipkinRedisFlag = process.env.ZIPKIN_REDIS || "true"
+    var zipkinFlag = options.zipkinEnable
+    var zipkinRedisFlag = options.zipkinRedis
     var newClient = null
 
     if (zipkinFlag === "true" && zipkinRedisFlag === "true") {
@@ -47,8 +47,8 @@ var _newCache = function (options) {
       var zipkinClient = require('zipkin-instrumentation-redis')
 
       var ctxImpl = new CLSContext()
-      var endpoint = process.env.ZIPKIN_URL || 'http://localhost:9411'
-      var serviceName = process.env.SERVICE_NAME + '_redis'
+      var endpoint = options.zipkinURL
+      var serviceName = options.zipkinServiceName + '_redis'
 
       var recorder = new zipkin.BatchRecorder({
         logger: new logger.HttpLogger({
