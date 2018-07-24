@@ -58,6 +58,9 @@ name = opt "name"
 retryStrategy :: Option CacheConnOpts (CacheConnOpts -> Int)
 retryStrategy = opt "retryStrategy"
 
+logger :: Option CacheConnOpts Foreign
+logger = opt "logger"
+
 foreign import setKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import getKeyJ :: CacheConn -> String -> Promise String
 foreign import setexJ :: CacheConn -> String -> String -> String -> Promise String

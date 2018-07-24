@@ -20,7 +20,7 @@
     "tests"
   ],
   "dependencies": {
-    "purescript-aff-promise": "^0.6.0",
-    "purescript-options": "^3.1.0"
+    "purescript-aff-promise": "^2.0.0",
+    "purescript-options": "^4.0.0"
   }
 }
