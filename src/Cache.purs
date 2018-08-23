@@ -84,7 +84,7 @@ foreign import setHashJ :: CacheConn -> String -> String -> Promise String
 foreign import getHashKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
 foreign import subscribeJ :: CacheConn -> String -> Promise String
-foreign import setMessageHandlerJ :: CacheConn -> (String -> String -> Unit) -> Promise String
+foreign import setMessageHandlerJ :: forall aff. CacheConn -> (String -> String -> Aff aff Unit) -> Promise String
 foreign import _newCache :: forall e. Foreign -> Eff ( cache :: CACHE | e ) CacheConn
 
 getConn :: forall e. Options CacheConnOpts -> Aff ( cache :: CACHE | e ) CacheConn
@@ -123,6 +123,6 @@ publishToChannel cacheConn channel message = attempt $ toAff $ publishToChannelJ
 subscribe :: forall e. CacheConn -> String -> Aff (cache :: CACHE | e) (Either Error String)
 subscribe cacheConn channel = attempt $ toAff $ subscribeJ cacheConn channel
 
-setMessageHandler :: forall e. CacheConn -> (String -> String -> Unit) -> Aff (cache :: CACHE | e) (Either Error String)
+setMessageHandler :: forall e aff. CacheConn -> (String -> String -> Aff aff Unit) -> Aff (cache :: CACHE | e) (Either Error String)
 setMessageHandler cacheConn f = attempt $ toAff $ setMessageHandlerJ cacheConn f
 
