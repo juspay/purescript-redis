@@ -115,7 +115,9 @@ var incrJ = function(client) {
   }
 }
 
-var callback = function(err, value) { return; }
+var callback = function(err, value) {
+  console.log('subscribed and data received here')
+  return; }
 
 var setHashJ = function(client) {
   return function(key) {
@@ -143,7 +145,9 @@ var publishToChannelJ = function(client) {
 
 var subscribeJ = function(client) {
   return function(channel) {
-    return client.subscribe(channel, callback);
+    return function(){
+      return client.subscribe(channel, callback);
+    }
   }
 }
 
@@ -155,7 +159,9 @@ var getDefaultRetryStratergyJ = function() {
 
 var setMessageHandlerJ = function(client) {
   return function(handler) {
-    client.on("message", handler)
+    return function(){
+    console.log('message handler: ', handler)
+    client.on("message", handler)}
   }
 }
 
