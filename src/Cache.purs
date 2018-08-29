@@ -25,12 +25,11 @@ import Control.Monad.Aff (Aff, attempt)
 import Control.Monad.Eff (Eff, kind Effect)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (Error)
-import Control.Promise (Promise, toAff)
+import Control.Promise (Promise, toAff, toAffE)
 import Data.Either (Either)
 import Data.Foreign (Foreign)
 import Data.Options (Option, Options, opt, options)
-import Prelude (($), (<<<), Unit)
-
+import Prelude (Unit, ($), (<<<))
 foreign import data CacheConn :: Type
 
 foreign import data CACHE :: Effect
@@ -83,8 +82,8 @@ foreign import incrJ :: CacheConn -> String -> Promise String
 foreign import setHashJ :: CacheConn -> String -> String -> Promise String
 foreign import getHashKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
-foreign import subscribeJ :: CacheConn -> String -> Promise String
-foreign import setMessageHandlerJ :: CacheConn -> (String -> String -> Unit) -> Promise String
+foreign import subscribeJ :: forall eff. CacheConn -> String -> Eff eff (Promise String)
+foreign import setMessageHandlerJ :: forall eff1 eff2. CacheConn -> (String -> String -> Eff eff1 Unit) -> Eff eff2 (Promise String)
 foreign import _newCache :: forall e. Foreign -> Eff ( cache :: CACHE | e ) CacheConn
 
 getConn :: forall e. Options CacheConnOpts -> Aff ( cache :: CACHE | e ) CacheConn
@@ -121,8 +120,7 @@ publishToChannel :: forall e. CacheConn -> String -> String -> Aff (cache :: CAC
 publishToChannel cacheConn channel message = attempt $ toAff $ publishToChannelJ cacheConn channel message
 
 subscribe :: forall e. CacheConn -> String -> Aff (cache :: CACHE | e) (Either Error String)
-subscribe cacheConn channel = attempt $ toAff $ subscribeJ cacheConn channel
+subscribe cacheConn channel = attempt $ toAffE $ subscribeJ cacheConn channel
 
-setMessageHandler :: forall e. CacheConn -> (String -> String -> Unit) -> Aff (cache :: CACHE | e) (Either Error String)
-setMessageHandler cacheConn f = attempt $ toAff $ setMessageHandlerJ cacheConn f
-
+setMessageHandler :: forall e eff. CacheConn -> (String -> String -> Eff eff Unit) -> Aff (cache :: CACHE | e) (Either Error String)
+setMessageHandler cacheConn f = attempt $ toAffE $ setMessageHandlerJ cacheConn f

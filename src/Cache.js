@@ -143,7 +143,9 @@ var publishToChannelJ = function(client) {
 
 var subscribeJ = function(client) {
   return function(channel) {
-    return client.subscribe(channel, callback);
+    return function() {
+      return client.subscribe(channel, callback)
+    }
   }
 }
 
@@ -155,7 +157,10 @@ var getDefaultRetryStratergyJ = function() {
 
 var setMessageHandlerJ = function(client) {
   return function(handler) {
-    client.on("message", handler)
+    return function() {
+      client.on("message", function (channelName, channelData) {
+        handler(channelName)(channelData)()
+      })}
   }
 }
 
