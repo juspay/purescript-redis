@@ -73,6 +73,7 @@ zipkinURL = opt "zipkinURL"
 zipkinServiceName :: Option CacheConnOpts String
 zipkinServiceName = opt "zipkinServiceName"
 
+foreign import setJ :: CacheConn -> Array String -> Promise String
 foreign import setKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import getKeyJ :: CacheConn -> String -> Promise String
 foreign import setexJ :: CacheConn -> String -> String -> String -> Promise String
@@ -88,6 +89,9 @@ foreign import _newCache :: forall e. Foreign -> Eff ( cache :: CACHE | e ) Cach
 
 getConn :: forall e. Options CacheConnOpts -> Aff ( cache :: CACHE | e ) CacheConn
 getConn = liftEff <<< _newCache <<< options
+
+set :: forall e. CacheConn -> Array String -> Aff (cache :: CACHE | e ) (Either Error String)
+set cacheConn arr = attempt $ toAff $ setJ cacheConn arr
 
 setKey :: forall e. CacheConn -> String -> String -> Aff (cache :: CACHE | e) (Either Error String)
 setKey cacheConn key value = attempt $ toAff $ setKeyJ cacheConn key value

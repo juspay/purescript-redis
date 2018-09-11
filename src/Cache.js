@@ -89,6 +89,12 @@ var setexJ = function(client) {
   };
 };
 
+var setJ = function(client) {
+  return function(arr) {
+    return client.set(arr)
+  }
+}
+
 var getKeyJ = function(client) {
   return function(key) {
     return client.getAsync(key);
@@ -165,6 +171,7 @@ var setMessageHandlerJ = function(client) {
 }
 
 exports._newCache = _newCache;
+exports.setJ = setJ;
 exports.setKeyJ = setKeyJ;
 exports.getKeyJ = getKeyJ;
 exports.setexJ = setexJ;
