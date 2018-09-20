@@ -110,7 +110,7 @@ var publishToChannelJ = function(client) {
     return function(message) {
       return client.publish(channel, message);
     }
-  }; 
+  };
 }
 
 var subscribeJ = function(client) {
@@ -127,7 +127,11 @@ var getDefaultRetryStratergyJ = function() {
 
 var setMessageHandlerJ = function(client) {
   return function(handler) {
-    client.on("message", handler)
+    return function() {
+      client.on("message", function(channelName, channelData) {
+        handler(channelName, channelData)()
+      })
+    }
   }
 }
 

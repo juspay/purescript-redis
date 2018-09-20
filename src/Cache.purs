@@ -21,14 +21,14 @@
 
 module Cache where
 
-import Effect.Aff (Aff, attempt)
+import Control.Promise (Promise, toAff, toAffE)
+import Data.Either (Either)
+import Data.Options (Option, Options, opt, options)
 import Effect (Effect)
+import Effect.Aff (Aff, attempt)
 import Effect.Class (liftEffect)
 import Effect.Exception (Error)
-import Control.Promise (Promise, toAff)
-import Data.Either (Either)
 import Foreign (Foreign)
-import Data.Options (Option, Options, opt, options)
 import Prelude (($), (<<<), Unit)
 
 foreign import data CacheConn :: Type
@@ -69,7 +69,7 @@ foreign import setHashJ :: CacheConn -> String -> String -> Promise String
 foreign import getHashKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
 foreign import subscribeJ :: CacheConn -> String -> Promise String
-foreign import setMessageHandlerJ :: CacheConn -> (String -> String -> Unit) -> Promise String
+foreign import setMessageHandlerJ :: CacheConn -> (String -> String -> Effect Unit) -> Effect (Promise String)
 foreign import _newCache :: Foreign -> Effect CacheConn
 
 getConn :: Options CacheConnOpts -> Aff CacheConn
@@ -108,6 +108,5 @@ publishToChannel cacheConn channel message = attempt $ toAff $ publishToChannelJ
 subscribe :: CacheConn -> String -> Aff (Either Error String)
 subscribe cacheConn channel = attempt $ toAff $ subscribeJ cacheConn channel
 
-setMessageHandler :: CacheConn -> (String -> String -> Unit) -> Aff (Either Error String)
-setMessageHandler cacheConn f = attempt $ toAff $ setMessageHandlerJ cacheConn f
-
+setMessageHandler :: CacheConn -> (String -> String -> Effect Unit) -> Aff (Either Error String)
+setMessageHandler cacheConn f = attempt $ toAffE $ setMessageHandlerJ cacheConn f
