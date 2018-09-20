@@ -30,7 +30,6 @@ var redis = require("redis");
 var bluebird = require("bluebird");
 var env = process.env.NODE_ENV || 'DEV';
 
-// bluebird.promisifyAll(Redis.prototype);
 bluebird.promisifyAll(redis.RedisClient.prototype);
 
 var _newCache = function (options) {
@@ -91,7 +90,7 @@ var setexJ = function(client) {
 
 var setJ = function(client) {
   return function(arr) {
-    return client.set(arr)
+    return client.setAsync(arr)
   }
 }
 
