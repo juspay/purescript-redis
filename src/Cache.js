@@ -125,11 +125,18 @@ var getDefaultRetryStratergyJ = function() {
   }
 }
 
-var setMessageHandlerJ = function(client) {
-  return function(handler) {
-    return function() {
-      client.on("message", function(channelName, channelData) {
-        handler(channelName, channelData)()
+var setMessageHandlerJ = function (client) {
+  return function (handler) {
+    return function () {
+      return new Promise(function (resolve, reject) {
+        try {
+          client.on('message', function (channel, message) {
+            handler(channel)(message)();
+          })
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
       })
     }
   }
