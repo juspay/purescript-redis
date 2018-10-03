@@ -8,7 +8,7 @@
 * it for only educational purposes under the terms of the GNU Affero General
 * Public License (GNU AGPL) as published by the Free Software Foundation,
 * either version 3 of the License, or (at your option) any later version.
-* For Enterprise/Commerical licenses, contact <info@juspay.in>.
+* For Enterprise/Commercial licenses, contact <info@juspay.in>.
 *
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -27,7 +27,6 @@
 
 var Redis = require("ioredis");
 var bluebird = require("bluebird");
-var env = process.env.NODE_ENV || 'DEV';
 
 bluebird.promisifyAll(Redis.prototype);
 
@@ -48,7 +47,9 @@ var errorHandler = function(err) {
 var setKeyJ = function(client) {
   return function(key) {
     return function(value) {
-      return client.setAsync(key, value);
+      return function() {
+        return client.setAsync(key, value);
+      };
     };
   };
 }
@@ -57,7 +58,9 @@ var setexJ = function(client) {
   return function(key) {
     return function(value) {
       return function(ttl) {
-        return client.setexAsync(key, ttl, value);
+        return function () {
+          return client.setexAsync(key, ttl, value);
+        };
       };
     };
   };
@@ -65,65 +68,75 @@ var setexJ = function(client) {
 
 var getKeyJ = function(client) {
   return function(key) {
-    return client.getAsync(key);
+    return function () {
+      return client.getAsync(key);
+    };
   };
 };
 
 var delKeyJ = function(client) {
   return function(key) {
-    return client.delAsync(key);
+    return function () {
+      return client.delAsync(key);
+    };
   };
 };
 
 var expireJ = function(client) {
   return function(key) {
     return function(ttl) {
-      return client.expire(key, ttl);
-    }
-  }
-}
+      return function () {
+        return client.expire(key, ttl);
+      };
+    };
+  };
+};
 
 var incrJ = function(client) {
   return function(key) {
-    return client.incr(key);
-  }
-}
+    return function () {
+      return client.incr(key);
+    };
+  };
+};
 
 var setHashJ = function(client) {
   return function(key) {
     return function(value) {
-      return pubClient.hmset(key, value);
-    }
-  }
-}
+      return function () {
+        return pubClient.hmset(key, value);
+      };
+    };
+  };
+};
 
 var getHashKeyJ = function(client) {
   return function(key) {
     return function(field) {
-      return client.hget(key, field);
-    }
-  }
-}
+      return function () {
+        return client.hget(key, field);
+      };
+    };
+  };
+};
 
 var publishToChannelJ = function(client) {
   return function(channel) {
     return function(message) {
-      return client.publish(channel, message);
-    }
-  };
-}
+      return function () {
+        return client.publish(channel, message);
+      };
+    };
+  }; 
+};
 
 var subscribeJ = function(client) {
   return function(channel) {
-    return client.subscribe(channel);
-  }
-}
-
-var getDefaultRetryStratergyJ = function() {
-  return function(options) {
-    return options.try_after * 1000;
-  }
-}
+    return function () {
+      return client.subscribe(channel);
+    };
+  };
+};
 
 var setMessageHandlerJ = function (client) {
   return function (handler) {
@@ -136,11 +149,11 @@ var setMessageHandlerJ = function (client) {
           resolve();
         } catch (e) {
           reject(e);
-        }
-      })
-    }
-  }
-}
+        };
+      });
+    };
+  };
+};
 
 exports._newCache = _newCache;
 exports.setKeyJ = setKeyJ;

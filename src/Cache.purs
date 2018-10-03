@@ -6,7 +6,7 @@
  it for only educational purposes under the terms of the GNU Affero General
  Public License (GNU AGPL) as published by the Free Software Foundation,
  either version 3 of the License, or (at your option) any later version.
- For Enterprise/Commerical licenses, contact <info@juspay.in>.
+ For Enterprise/Commercial licenses, contact <info@juspay.in>.
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  The end user will
@@ -21,7 +21,7 @@
 
 module Cache where
 
-import Control.Promise (Promise, toAff, toAffE)
+import Control.Promise (Promise, toAffE)
 import Data.Either (Either)
 import Data.Options (Option, Options, opt, options)
 import Effect (Effect)
@@ -59,16 +59,16 @@ retryStrategy = opt "retryStrategy"
 logger :: Option CacheConnOpts Foreign
 logger = opt "logger"
 
-foreign import setKeyJ :: CacheConn -> String -> String -> Promise String
-foreign import getKeyJ :: CacheConn -> String -> Promise String
-foreign import setexJ :: CacheConn -> String -> String -> String -> Promise String
-foreign import delKeyJ :: CacheConn -> Array String -> Promise String
-foreign import expireJ :: CacheConn -> String -> String -> Promise String
-foreign import incrJ :: CacheConn -> String -> Promise String
-foreign import setHashJ :: CacheConn -> String -> String -> Promise String
-foreign import getHashKeyJ :: CacheConn -> String -> String -> Promise String
-foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
-foreign import subscribeJ :: CacheConn -> String -> Promise String
+foreign import setKeyJ :: CacheConn -> String -> String -> Effect (Promise String)
+foreign import getKeyJ :: CacheConn -> String -> Effect (Promise String)
+foreign import setexJ :: CacheConn -> String -> String -> String -> Effect (Promise String)
+foreign import delKeyJ :: CacheConn -> Array String -> Effect (Promise String)
+foreign import expireJ :: CacheConn -> String -> String -> Effect (Promise String)
+foreign import incrJ :: CacheConn -> String -> Effect (Promise String)
+foreign import setHashJ :: CacheConn -> String -> String -> Effect (Promise String)
+foreign import getHashKeyJ :: CacheConn -> String -> String -> Effect (Promise String)
+foreign import publishToChannelJ :: CacheConn -> String -> String -> Effect (Promise String)
+foreign import subscribeJ :: CacheConn -> String -> Effect (Promise String)
 foreign import setMessageHandlerJ :: CacheConn -> (String -> String -> Effect Unit) -> Effect (Promise String)
 foreign import _newCache :: Foreign -> Effect CacheConn
 
@@ -76,37 +76,37 @@ getConn :: Options CacheConnOpts -> Aff CacheConn
 getConn = liftEffect <<< _newCache <<< options
 
 setKey :: CacheConn -> String -> String -> Aff (Either Error String)
-setKey cacheConn key value = attempt $ toAff $ setKeyJ cacheConn key value
+setKey cacheConn key value = attempt $ toAffE $ setKeyJ cacheConn key value
 
 setex :: CacheConn -> String -> String -> String -> Aff (Either Error String)
-setex cacheConn key value ttl = attempt $ toAff $ setexJ cacheConn key value ttl
+setex cacheConn key value ttl = attempt $ toAffE $ setexJ cacheConn key value ttl
 
 getKey :: CacheConn -> String -> Aff (Either Error String)
-getKey cacheConn key = attempt $ toAff $ getKeyJ cacheConn key
+getKey cacheConn key = attempt $ toAffE $ getKeyJ cacheConn key
 
 delKey :: CacheConn -> String -> Aff (Either Error String)
-delKey cacheConn key = attempt $ toAff $ delKeyJ cacheConn [key]
+delKey cacheConn key = attempt $ toAffE $ delKeyJ cacheConn [key]
 
 delKeyList :: CacheConn -> Array String -> Aff (Either Error String)
-delKeyList cacheConn key = attempt $ toAff $ delKeyJ cacheConn key
+delKeyList cacheConn key = attempt $ toAffE $ delKeyJ cacheConn key
 
 expire :: CacheConn -> String -> String -> Aff (Either Error String)
-expire cacheConn key ttl = attempt $ toAff $ expireJ cacheConn key ttl
+expire cacheConn key ttl = attempt $ toAffE $ expireJ cacheConn key ttl
 
 incr :: CacheConn -> String -> Aff (Either Error String)
-incr cacheConn key = attempt $ toAff $ incrJ cacheConn key
+incr cacheConn key = attempt $ toAffE $ incrJ cacheConn key
 
 setHash :: CacheConn -> String -> String -> Aff (Either Error String)
-setHash cacheConn key value = attempt $ toAff $ setHashJ cacheConn key value
+setHash cacheConn key value = attempt $ toAffE $ setHashJ cacheConn key value
 
 getHashKey :: CacheConn -> String -> String -> Aff (Either Error String)
-getHashKey cacheConn key field = attempt $ toAff $ getHashKeyJ cacheConn key field
+getHashKey cacheConn key field = attempt $ toAffE $ getHashKeyJ cacheConn key field
 
 publishToChannel :: CacheConn -> String -> String -> Aff (Either Error String)
-publishToChannel cacheConn channel message = attempt $ toAff $ publishToChannelJ cacheConn channel message
+publishToChannel cacheConn channel message = attempt $ toAffE $ publishToChannelJ cacheConn channel message
 
 subscribe :: CacheConn -> String -> Aff (Either Error String)
-subscribe cacheConn channel = attempt $ toAff $ subscribeJ cacheConn channel
+subscribe cacheConn channel = attempt $ toAffE $ subscribeJ cacheConn channel
 
 setMessageHandler :: CacheConn -> (String -> String -> Effect Unit) -> Aff (Either Error String)
 setMessageHandler cacheConn f = attempt $ toAffE $ setMessageHandlerJ cacheConn f
