@@ -110,7 +110,7 @@ var publishToChannelJ = function(client) {
     return function(message) {
       return client.publish(channel, message);
     }
-  }; 
+  };
 }
 
 var subscribeJ = function(client) {
@@ -125,9 +125,20 @@ var getDefaultRetryStratergyJ = function() {
   }
 }
 
-var setMessageHandlerJ = function(client) {
-  return function(handler) {
-    client.on("message", handler)
+var setMessageHandlerJ = function (client) {
+  return function (handler) {
+    return function () {
+      return new Promise(function (resolve, reject) {
+        try {
+          client.on('message', function (channel, message) {
+            handler(channel)(message)();
+          })
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      })
+    }
   }
 }
 
