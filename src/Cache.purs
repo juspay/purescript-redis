@@ -25,7 +25,7 @@ import Control.Monad.Aff (Aff, attempt)
 import Control.Monad.Eff (Eff, kind Effect)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (Error)
-import Control.Promise (Promise, toAff, toAffE)
+import Control.Promise (Promise, toAffE)
 import Data.Either (Either)
 import Data.Foreign (Foreign)
 import Data.Options (Option, Options, opt, options)
@@ -73,16 +73,16 @@ zipkinURL = opt "zipkinURL"
 zipkinServiceName :: Option CacheConnOpts String
 zipkinServiceName = opt "zipkinServiceName"
 
-foreign import setJ :: CacheConn -> Array String -> Promise String
-foreign import setKeyJ :: CacheConn -> String -> String -> Promise String
-foreign import getKeyJ :: CacheConn -> String -> Promise String
-foreign import setexJ :: CacheConn -> String -> String -> String -> Promise String
-foreign import delKeyJ :: CacheConn -> Array String -> Promise String
-foreign import expireJ :: CacheConn -> String -> String -> Promise String
-foreign import incrJ :: CacheConn -> String -> Promise String
-foreign import setHashJ :: CacheConn -> String -> String -> Promise String
-foreign import getHashKeyJ :: CacheConn -> String -> String -> Promise String
-foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
+foreign import setJ :: forall eff. CacheConn -> Array String -> Eff eff (Promise String)
+foreign import setKeyJ :: forall eff. CacheConn -> String -> String -> Eff eff (Promise String)
+foreign import getKeyJ :: forall eff. CacheConn -> String -> Eff eff (Promise String)
+foreign import setexJ :: forall eff. CacheConn -> String -> String -> String -> Eff eff (Promise String)
+foreign import delKeyJ :: forall eff. CacheConn -> Array String -> Eff eff (Promise String)
+foreign import expireJ :: forall eff. CacheConn -> String -> String -> Eff eff (Promise String)
+foreign import incrJ :: forall eff. CacheConn -> String -> Eff eff (Promise String)
+foreign import setHashJ :: forall eff. CacheConn -> String -> String -> Eff eff (Promise String)
+foreign import getHashKeyJ :: forall eff. CacheConn -> String -> String -> Eff eff (Promise String)
+foreign import publishToChannelJ :: forall eff. CacheConn -> String -> String -> Eff eff (Promise String)
 foreign import subscribeJ :: forall eff. CacheConn -> String -> Eff eff (Promise String)
 foreign import setMessageHandlerJ :: forall eff1 eff2. CacheConn -> (String -> String -> Eff eff1 Unit) -> Eff eff2 (Promise String)
 foreign import _newCache :: forall e. Foreign -> Eff ( cache :: CACHE | e ) CacheConn
@@ -91,37 +91,37 @@ getConn :: forall e. Options CacheConnOpts -> Aff ( cache :: CACHE | e ) CacheCo
 getConn = liftEff <<< _newCache <<< options
 
 set :: forall e. CacheConn -> Array String -> Aff (cache :: CACHE | e ) (Either Error String)
-set cacheConn arr = attempt $ toAff $ setJ cacheConn arr
+set cacheConn arr = attempt $ toAffE $ setJ cacheConn arr
 
 setKey :: forall e. CacheConn -> String -> String -> Aff (cache :: CACHE | e) (Either Error String)
-setKey cacheConn key value = attempt $ toAff $ setKeyJ cacheConn key value
+setKey cacheConn key value = attempt $ toAffE $ setKeyJ cacheConn key value
 
 setex :: forall e. CacheConn -> String -> String -> String -> Aff (cache :: CACHE | e) (Either Error String)
-setex cacheConn key value ttl = attempt $ toAff $ setexJ cacheConn key value ttl
+setex cacheConn key value ttl = attempt $ toAffE $ setexJ cacheConn key value ttl
 
 getKey :: forall e. CacheConn -> String -> Aff (cache :: CACHE | e) (Either Error String)
-getKey cacheConn key = attempt $ toAff $ getKeyJ cacheConn key
+getKey cacheConn key = attempt $ toAffE $ getKeyJ cacheConn key
 
 delKey :: forall e. CacheConn -> String -> Aff (cache :: CACHE | e) (Either Error String)
-delKey cacheConn key = attempt $ toAff $ delKeyJ cacheConn [key]
+delKey cacheConn key = attempt $ toAffE $ delKeyJ cacheConn [key]
 
 delKeyList :: forall e. CacheConn -> Array String -> Aff (cache :: CACHE | e) (Either Error String)
-delKeyList cacheConn key = attempt $ toAff $ delKeyJ cacheConn key
+delKeyList cacheConn key = attempt $ toAffE $ delKeyJ cacheConn key
 
 expire :: forall e. CacheConn -> String -> String -> Aff (cache :: CACHE | e) (Either Error String)
-expire cacheConn key ttl = attempt $ toAff $ expireJ cacheConn key ttl
+expire cacheConn key ttl = attempt $ toAffE $ expireJ cacheConn key ttl
 
 incr :: forall e. CacheConn -> String -> Aff (cache :: CACHE | e) (Either Error String)
-incr cacheConn key = attempt $ toAff $ incrJ cacheConn key
+incr cacheConn key = attempt $ toAffE $ incrJ cacheConn key
 
 setHash :: forall e. CacheConn -> String -> String -> Aff (cache :: CACHE | e) (Either Error String)
-setHash cacheConn key value = attempt $ toAff $ setHashJ cacheConn key value
+setHash cacheConn key value = attempt $ toAffE $ setHashJ cacheConn key value
 
 getHashKey :: forall e. CacheConn -> String -> String -> Aff (cache :: CACHE | e) (Either Error String)
-getHashKey cacheConn key field = attempt $ toAff $ getHashKeyJ cacheConn key field
+getHashKey cacheConn key field = attempt $ toAffE $ getHashKeyJ cacheConn key field
 
 publishToChannel :: forall e. CacheConn -> String -> String -> Aff (cache :: CACHE | e) (Either Error String)
-publishToChannel cacheConn channel message = attempt $ toAff $ publishToChannelJ cacheConn channel message
+publishToChannel cacheConn channel message = attempt $ toAffE $ publishToChannelJ cacheConn channel message
 
 subscribe :: forall e. CacheConn -> String -> Aff (cache :: CACHE | e) (Either Error String)
 subscribe cacheConn channel = attempt $ toAffE $ subscribeJ cacheConn channel

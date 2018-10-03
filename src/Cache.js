@@ -73,16 +73,20 @@ var errorHandler = function(err) {
 var setKeyJ = function(client) {
   return function(key) {
     return function(value) {
-      return client.setAsync(key, value);
+      return function() {
+        return client.setAsync(key, value);
+      };
     };
   };
-}
+};
 
 var setexJ = function(client) {
   return function(key) {
     return function(value) {
       return function(ttl) {
-        return client.setexAsync(key, ttl, value);
+        return function () {
+          return client.setexAsync(key, ttl, value);
+        };
       };
     };
   };
@@ -90,84 +94,94 @@ var setexJ = function(client) {
 
 var setJ = function(client) {
   return function(arr) {
-    return client.setAsync(arr)
-  }
-}
+    return function () {
+      return client.setAsync(arr);
+    };
+  };
+};
 
 var getKeyJ = function(client) {
   return function(key) {
-    return client.getAsync(key);
+    return function () {
+      return client.getAsync(key);
+    };
   };
 };
 
 var delKeyJ = function(client) {
   return function(key) {
-    return client.delAsync(key);
+    return function () {
+      return client.delAsync(key);
+    };
   };
 };
 
 var expireJ = function(client) {
   return function(key) {
     return function(ttl) {
-      return client.expire(key, ttl);
-    }
-  }
-}
+      return function () {
+        return client.expire(key, ttl);
+      };
+    };
+  };
+};
 
 var incrJ = function(client) {
   return function(key) {
-    return client.incr(key, callback);
-  }
-}
+    return function () {
+      return client.incr(key, callback);
+    };
+  };
+};
 
 var callback = function(err, value) { return; }
 
 var setHashJ = function(client) {
   return function(key) {
     return function(value) {
-      return client.hmset(key, value);
-    }
-  }
-}
+      return function () {
+        return client.hmset(key, value);
+      };
+    };
+  };
+};
 
 var getHashKeyJ = function(client) {
   return function(key) {
     return function(field) {
-      return client.hget(key, field, callback);
-    }
-  }
-}
+      return function () {
+        return client.hget(key, field, callback);
+      };
+    };
+  };
+};
 
 var publishToChannelJ = function(client) {
   return function(channel) {
     return function(message) {
-      return client.publish(channel, message);
-    }
+      return function () {
+        return client.publish(channel, message);
+      };
+    };
   }; 
-}
+};
 
 var subscribeJ = function(client) {
   return function(channel) {
     return function() {
       return client.subscribe(channel, callback)
-    }
-  }
-}
-
-var getDefaultRetryStratergyJ = function() {
-  return function(options) {
-    return options.try_after * 1000;
-  }
-}
+    };
+  };
+};
 
 var setMessageHandlerJ = function(client) {
   return function(handler) {
     return function() {
       client.on("message", function (channelName, channelData) {
         handler(channelName)(channelData)()
-      })}
-  }
-}
+      })};
+  };
+};
 
 exports._newCache = _newCache;
 exports.setJ = setJ;
