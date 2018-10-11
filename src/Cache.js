@@ -65,7 +65,7 @@ var setexJ = function(client) {
 
 var setJ = function(client) {
   return function(arr) {
-    return client.set(arr)
+    return client.setAsync(arr)
   }
 }
 
