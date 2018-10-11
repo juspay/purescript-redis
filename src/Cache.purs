@@ -59,6 +59,7 @@ retryStrategy = opt "retryStrategy"
 logger :: Option CacheConnOpts Foreign
 logger = opt "logger"
 
+foreign import setJ :: CacheConn -> Array String -> Promise String
 foreign import setKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import getKeyJ :: CacheConn -> String -> Promise String
 foreign import setexJ :: CacheConn -> String -> String -> String -> Promise String
@@ -74,6 +75,9 @@ foreign import _newCache :: Foreign -> Effect CacheConn
 
 getConn :: Options CacheConnOpts -> Aff CacheConn
 getConn = liftEffect <<< _newCache <<< options
+
+set :: CacheConn -> Array String -> Aff (Either Error String)
+set cacheConn arr = attempt $ toAff $ setJ cacheConn arr
 
 setKey :: CacheConn -> String -> String -> Aff (Either Error String)
 setKey cacheConn key value = attempt $ toAff $ setKeyJ cacheConn key value
