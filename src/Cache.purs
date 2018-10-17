@@ -59,6 +59,18 @@ retryStrategy = opt "retryStrategy"
 logger :: Option CacheConnOpts Foreign
 logger = opt "logger"
 
+zipkinEnable :: Option CacheConnOpts String
+zipkinEnable = opt "zipkinEnable"
+
+zipkinRedis :: Option CacheConnOpts String
+zipkinRedis = opt "zipkinRedis"
+
+zipkinURL :: Option CacheConnOpts String
+zipkinURL = opt "zipkinURL"
+
+zipkinServiceName :: Option CacheConnOpts String
+zipkinServiceName = opt "zipkinServiceName"
+
 foreign import setJ :: CacheConn -> Array String -> Promise String
 foreign import setKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import getKeyJ :: CacheConn -> String -> Promise String
