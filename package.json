@@ -19,6 +19,9 @@
   "homepage": "https://github.com/juspay/purescript-redis/README.md",
   "dependencies": {
     "bluebird": "^3.5.1",
-    "ioredis": "^3.2.2"
+    "ioredis": "^3.2.2",
+    "zipkin-context-cls": "^0.14.0",
+    "zipkin-instrumentation-redis": "^0.14.0",
+    "zipkin-transport-http": "^0.14.0"
   }
 }
