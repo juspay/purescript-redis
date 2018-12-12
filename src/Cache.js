@@ -52,7 +52,7 @@ var _newCache = function (options) {
       var tracer = new zipkin.Tracer({localServiceName: serviceName, ctxImpl: ctxImpl, recorder: recorder})
       newClient = zipkinClient(tracer, Redis, options)
     } else {
-      newClient = Redis.createClient(options)
+      newClient = new Redis(options)
     }
     newClient.on("error", errorHandler)
     return newClient;
