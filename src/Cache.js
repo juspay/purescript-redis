@@ -26,10 +26,7 @@
 "use strict";
 
 var Redis = require("ioredis");
-var bluebird = require("bluebird");
 var env = process.env.NODE_ENV || 'DEV';
-
-bluebird.promisifyAll(Redis.prototype);
 
 var _newCache = function (options) {
   return function () {
@@ -71,7 +68,7 @@ var errorHandler = function(err) {
 var setKeyJ = function(client) {
   return function(key) {
     return function(value) {
-      return client.setAsync(key, value);
+      return client.set(key, value);
     };
   };
 }
@@ -80,7 +77,7 @@ var setexJ = function(client) {
   return function(key) {
     return function(value) {
       return function(ttl) {
-        return client.setexAsync(key, ttl, value);
+        return client.setex(key, ttl, value);
       };
     };
   };
@@ -88,19 +85,19 @@ var setexJ = function(client) {
 
 var setJ = function(client) {
   return function(arr) {
-    return client.setAsync(arr)
+    return client.set(arr)
   }
 }
 
 var getKeyJ = function(client) {
   return function(key) {
-    return client.getAsync(key);
+    return client.get(key);
   };
 };
 
 var delKeyJ = function(client) {
   return function(key) {
-    return client.delAsync(key);
+    return client.del(key);
   };
 };
 
