@@ -25,12 +25,9 @@
 
 "use strict";
 
-// var Redis = require("ioredis");
 var redis = require("redis");
-var bluebird = require("bluebird");
 var env = process.env.NODE_ENV || 'DEV';
-
-bluebird.promisifyAll(redis.RedisClient.prototype);
+const util = require('util');
 
 var _newCache = function (options) {
   return function () {
@@ -73,7 +70,7 @@ var errorHandler = function(err) {
 var setKeyJ = function(client) {
   return function(key) {
     return function(value) {
-      return client.setAsync(key, value);
+      return util.promisify(client.set).bind(client)(key, value);
     };
   };
 }
@@ -82,7 +79,7 @@ var setexJ = function(client) {
   return function(key) {
     return function(value) {
       return function(ttl) {
-        return client.setexAsync(key, ttl, value);
+        return util.promisify(client.setex).bind(client)(key, ttl, value);
       };
     };
   };
@@ -90,33 +87,33 @@ var setexJ = function(client) {
 
 var setJ = function(client) {
   return function(arr) {
-    return client.setAsync(arr)
+    return util.promisify(client.set).bind(client)(arr)
   }
 }
 
 var getKeyJ = function(client) {
   return function(key) {
-    return client.getAsync(key);
+    return util.promisify(client.get).bind(client)(key);
   };
 };
 
 var delKeyJ = function(client) {
   return function(key) {
-    return client.delAsync(key);
+    return util.promisify(client.del).bind(client)(key);
   };
 };
 
 var expireJ = function(client) {
   return function(key) {
     return function(ttl) {
-      return client.expire(key, ttl);
+      return util.promisify(client.expire).bind(client)(key, ttl);
     }
   }
 }
 
 var incrJ = function(client) {
   return function(key) {
-    return client.incr(key, callback);
+    return util.promisify(client.incr).bind(client)(key, callback);
   }
 }
 
@@ -125,7 +122,7 @@ var callback = function(err, value) { return; }
 var setHashJ = function(client) {
   return function(key) {
     return function(value) {
-      return client.hmset(key, value);
+      return util.promisify(client.hmset).bind(client)(key, value);
     }
   }
 }
@@ -133,7 +130,7 @@ var setHashJ = function(client) {
 var getHashKeyJ = function(client) {
   return function(key) {
     return function(field) {
-      return client.hget(key, field, callback);
+      return util.promisify(client.hget).bind(client)(key, field, callback);
     }
   }
 }
@@ -141,7 +138,7 @@ var getHashKeyJ = function(client) {
 var publishToChannelJ = function(client) {
   return function(channel) {
     return function(message) {
-      return client.publish(channel, message);
+      return util.promisify(client.publish).bind(client)(channel, message);
     }
   }; 
 }
@@ -149,7 +146,7 @@ var publishToChannelJ = function(client) {
 var subscribeJ = function(client) {
   return function(channel) {
     return function() {
-      return client.subscribe(channel, callback)
+      return util.promisify(client.subscribe).bind(client)(channel, callback)
     }
   }
 }
