@@ -87,7 +87,7 @@ var setexJ = function(client) {
 
 var setJ = function(client) {
   return function(arr) {
-    return util.promisify(client.set).bind(client)(arr)
+    return util.promisify(client.set).bind(client)(arr);
   }
 }
 
@@ -146,7 +146,7 @@ var publishToChannelJ = function(client) {
 var subscribeJ = function(client) {
   return function(channel) {
     return function() {
-      return util.promisify(client.subscribe).bind(client)(channel, callback)
+      return util.promisify(client.subscribe).bind(client)(channel, callback);
     }
   }
 }

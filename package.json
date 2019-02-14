@@ -23,5 +23,8 @@
     "zipkin-context-cls": "^0.13.0",
     "zipkin-instrumentation-redis": "^0.13.0",
     "zipkin-transport-http": "^0.13.0"
+  },
+  "devDependencies": {
+    "cls-hooked": "^4.2.2"
   }
 }
