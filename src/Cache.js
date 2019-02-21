@@ -26,6 +26,14 @@
 "use strict";
 
 var redis = require("redis");
+
+var bluebird = require("bluebird");
+var clsBluebird = require('cls-bluebird');
+var cls = require('cls-hooked');
+
+var ns = cls.getNamespace('zipkin') || cls.createNamespace('zipkin');
+clsBluebird(ns, bluebird);
+
 var env = process.env.NODE_ENV || 'DEV';
 const util = require('util');
 
