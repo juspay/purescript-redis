@@ -86,6 +86,9 @@ foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise Str
 foreign import subscribeJ :: forall eff. CacheConn -> String -> Eff eff (Promise String)
 foreign import setMessageHandlerJ :: forall eff1 eff2. CacheConn -> (String -> String -> Eff eff1 Unit) -> Eff eff2 (Promise String)
 foreign import _newCache :: forall e. Foreign -> Eff ( cache :: CACHE | e ) CacheConn
+foreign import enqueueJ :: CacheConn -> String -> String -> Promise String
+foreign import dequeueJ :: CacheConn -> String -> Promise String
+foreign import getQueueIdxJ :: CacheConn -> String -> Int -> Promise String
 
 getConn :: forall e. Options CacheConnOpts -> Aff ( cache :: CACHE | e ) CacheConn
 getConn = liftEff <<< _newCache <<< options
@@ -125,6 +128,15 @@ publishToChannel cacheConn channel message = attempt $ toAff $ publishToChannelJ
 
 subscribe :: forall e. CacheConn -> String -> Aff (cache :: CACHE | e) (Either Error String)
 subscribe cacheConn channel = attempt $ toAffE $ subscribeJ cacheConn channel
+
+enqueue :: forall e. CacheConn -> String -> String -> Aff (cache :: CACHE | e) (Either Error String)
+enqueue cacheConn listName value = attempt $ toAff $ enqueueJ cacheConn listName value
+
+dequeue :: forall e. CacheConn -> String -> Aff (cache :: CACHE | e) (Either Error String)
+dequeue cacheConn listName = attempt $ toAff $ dequeueJ cacheConn listName
+
+getQueueIdx :: forall e. CacheConn -> String -> Int -> Aff (cache :: CACHE | e) (Either Error String)
+getQueueIdx cacheConn listName index = attempt $ toAff $ getQueueIdxJ cacheConn listName index
 
 setMessageHandler :: forall e eff. CacheConn -> (String -> String -> Eff eff Unit) -> Aff (cache :: CACHE | e) (Either Error String)
 setMessageHandler cacheConn f = attempt $ toAffE $ setMessageHandlerJ cacheConn f
