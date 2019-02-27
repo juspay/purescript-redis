@@ -175,6 +175,28 @@ var setMessageHandlerJ = function(client) {
   }
 }
 
+var enqueueJ = function(client) {
+  return function(listname) {
+    return function(value) {
+      return client.rpushAsync(listname, value);
+    }
+  }
+}
+
+var dequeueJ = function(client) {
+  return function(listname) {
+    return client.lpopAsync(listname);
+  }
+}
+
+var getQueueIdxJ = function(client) {
+  return function(listname) {
+    return function(index) {
+      return client.lindexAsync(listname, index);
+    }
+  }
+}
+
 exports._newCache = _newCache;
 exports.setJ = setJ;
 exports.setKeyJ = setKeyJ;
@@ -188,3 +210,6 @@ exports.getHashKeyJ = getHashKeyJ;
 exports.publishToChannelJ = publishToChannelJ;
 exports.subscribeJ = subscribeJ;
 exports.setMessageHandlerJ = setMessageHandlerJ;
+exports.enqueueJ = enqueueJ;
+exports.dequeueJ = dequeueJ;
+exports.getQueueIdxJ = getQueueIdxJ;
