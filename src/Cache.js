@@ -122,7 +122,7 @@ var expireJ = function(client) {
 
 var incrJ = function(client) {
   return function(key) {
-    return client.incr(key, callback);
+    return client.incrAsync(key);
   }
 }
 
