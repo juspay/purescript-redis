@@ -36,7 +36,7 @@ var cls = require('cls-hooked');
 var ns = cls.getNamespace('zipkin') || cls.createNamespace('zipkin');
 clsBluebird(ns, bluebird);
 
-bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis)
 
 var _newCache = function (options) {
   return function () {
@@ -69,6 +69,12 @@ var _newCache = function (options) {
     return newClient;
   };
 };
+
+var _newMulti = function(client){
+    return function(){
+        return client.multi();
+    }
+}
 
 var errorHandler = function(err) {
   if (err) {
@@ -197,7 +203,113 @@ var getQueueIdxJ = function(client) {
   }
 }
 
+var setMultiJ = function(arr){
+    return function(multi){
+       return multi.set(arr);
+    }
+}
+
+var getKeyMultiJ = function(key){
+    return function(multi){
+       return multi.get(key);
+    }
+}
+
+var setKeyMultiJ = function(key){
+    return function(value){
+        return function(multi){
+            return multi.set(key,value);
+        }
+    }
+}
+
+exports["setexKeyMultiJ"] = function(key){
+    return function(val){
+        return function(ttl){
+            return function(multi){
+               return multi.setex(key, ttl, val);    
+            }
+        }
+    }
+}
+
+exports["delKeyMultiJ"] = function(key){
+    return function(multi){
+        return multi.del(key);
+    }
+}
+
+exports["expireMultiJ"] = function(key){
+    return function(ttl){
+        return function(multi){
+           return multi.expire(key,ttl);
+        }
+    }
+}
+
+exports["incrMultiJ"] = function(key){
+    return function(multi){
+            return multi.incr(key);
+    }
+}
+
+exports["setHashMultiJ"] = function(key){
+    return function(value){
+        return function(multi){
+           return multi.hmset(key,value);
+        }
+    }
+}
+
+exports["getHashMultiJ"] = function(key){
+    return function(value){
+        return function(multi){
+            return multi.hget(key, field);
+        } 
+    }
+}
+
+exports["publishCMultiJ"] = function(channel){
+    return function(message){
+        return function(multi){
+            return multi.publish(channel,message);
+        }
+    }
+}
+
+exports["subscribeMultiJ"] = function(channel){
+    return function(multi){
+        return multi.subscribe(channel);
+    }
+}
+
+exports["enqueueMultiJ"] = function(listName){
+    return function(value){
+        return function(multi){
+            return multi.rpush(listName,value);
+        }
+    }
+}
+
+exports["dequeueMultiJ"] = function(listName){
+    return function(multi){
+        return multi.lpop(listName);
+    }
+}
+
+exports["getQueueIdxMultiJ"] = function(listName){
+    return function(value){
+        return function(multi){
+            return multi.lindex(listName, value);
+        }
+    }
+}
+var execMulti = function(multi){
+    return multi.execAsync();
+}
+
 exports._newCache = _newCache;
+exports._newMulti = _newMulti;
 exports.setJ = setJ;
 exports.setKeyJ = setKeyJ;
 exports.getKeyJ = getKeyJ;
@@ -213,3 +325,7 @@ exports.setMessageHandlerJ = setMessageHandlerJ;
 exports.enqueueJ = enqueueJ;
 exports.dequeueJ = dequeueJ;
 exports.getQueueIdxJ = getQueueIdxJ;
+exports.setMultiJ = setMultiJ;
+exports.getKeyMultiJ = getKeyMultiJ;
+exports.setKeyMultiJ = setKeyMultiJ;
+exports.execMulti = execMulti;
