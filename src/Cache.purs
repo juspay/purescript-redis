@@ -40,7 +40,7 @@ data CacheConnOpts
 
 type CacheEff e = Eff (cache :: CACHE | e)
 type CacheAff e = Aff (cache :: CACHE | e)
-type MulTiToMulTi = Multi -> Multi
+type MultiToMulti = Multi -> Multi
 
 host :: Option CacheConnOpts String
 host = opt "host"
@@ -98,20 +98,20 @@ foreign import enqueueJ :: CacheConn -> String -> String -> Promise String
 foreign import dequeueJ :: CacheConn -> String -> Promise String
 foreign import getQueueIdxJ :: CacheConn -> String -> Int -> Promise String
 
-foreign import setMultiJ ::  Array String -> MulTiToMulTi  
-foreign import getKeyMultiJ ::  String -> MulTiToMulTi
-foreign import setKeyMultiJ ::  String -> String -> MulTiToMulTi
-foreign import setexKeyMultiJ :: String -> String -> String -> MulTiToMulTi
-foreign import delKeyMultiJ :: Array String -> MulTiToMulTi
-foreign import expireMultiJ :: String -> String -> MulTiToMulTi
-foreign import incrMultiJ ::  String -> MulTiToMulTi
-foreign import setHashMultiJ :: String -> String -> MulTiToMulTi
-foreign import getHashMultiJ :: String -> String -> MulTiToMulTi 
-foreign import publishCMultiJ :: String -> String -> MulTiToMulTi
-foreign import subscribeMultiJ :: String -> MulTiToMulTi
-foreign import enqueueMultiJ :: String -> String -> MulTiToMulTi
-foreign import dequeueMultiJ :: String -> MulTiToMulTi
-foreign import getQueueIdxMultiJ :: String -> Int -> MulTiToMulTi
+foreign import setMultiJ ::  Array String -> MultiToMulti  
+foreign import getKeyMultiJ ::  String -> MultiToMulti
+foreign import setKeyMultiJ ::  String -> String -> MultiToMulti
+foreign import setexKeyMultiJ :: String -> String -> String -> MultiToMulti
+foreign import delKeyMultiJ :: Array String -> MultiToMulti
+foreign import expireMultiJ :: String -> String -> MultiToMulti
+foreign import incrMultiJ ::  String -> MultiToMulti
+foreign import setHashMultiJ :: String -> String -> MultiToMulti
+foreign import getHashMultiJ :: String -> String -> MultiToMulti 
+foreign import publishCMultiJ :: String -> String -> MultiToMulti
+foreign import subscribeMultiJ :: String -> MultiToMulti
+foreign import enqueueMultiJ :: String -> String -> MultiToMulti
+foreign import dequeueMultiJ :: String -> MultiToMulti
+foreign import getQueueIdxMultiJ :: String -> Int -> MultiToMulti
 
 getConn :: forall e. Options CacheConnOpts -> CacheAff e CacheConn
 getConn = liftEff <<< _newCache <<< options
