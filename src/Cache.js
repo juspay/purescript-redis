@@ -36,9 +36,9 @@ var cls = require('cls-hooked');
 var ns = cls.getNamespace('zipkin') || cls.createNamespace('zipkin');
 clsBluebird(ns, bluebird);
 
-bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis)
 
-var _newCache = function (options) {
+exports["_newCache"] = function (options) {
   return function () {
     // var newClient = new Redis(options);
     var zipkinFlag = options.zipkinEnable
@@ -70,13 +70,19 @@ var _newCache = function (options) {
   };
 };
 
+exports["_newMulti"] = function(client){
+    return function(){
+        return client.multi();
+    }
+}
+
 var errorHandler = function(err) {
   if (err) {
     console.log("Redis connection lost", err);
   }
 };
 
-var setKeyJ = function(client) {
+exports["setKeyJ"] = function(client) {
   return function(key) {
     return function(value) {
       return client.setAsync(key, value);
@@ -84,7 +90,7 @@ var setKeyJ = function(client) {
   };
 }
 
-var setexJ = function(client) {
+exports["setexJ"] = function(client) {
   return function(key) {
     return function(value) {
       return function(ttl) {
@@ -94,25 +100,25 @@ var setexJ = function(client) {
   };
 };
 
-var setJ = function(client) {
+exports["setJ"] = function(client) {
   return function(arr) {
     return client.setAsync(arr)
   }
 }
 
-var getKeyJ = function(client) {
+exports["getKeyJ"] = function(client) {
   return function(key) {
     return client.getAsync(key);
   };
 };
 
-var delKeyJ = function(client) {
+exports["delKeyJ"] = function(client) {
   return function(key) {
     return client.delAsync(key);
   };
 };
 
-var expireJ = function(client) {
+exports["expireJ"] = function(client) {
   return function(key) {
     return function(ttl) {
       return client.expire(key, ttl);
@@ -120,7 +126,7 @@ var expireJ = function(client) {
   }
 }
 
-var incrJ = function(client) {
+exports["incrJ"] = function(client) {
   return function(key) {
     return client.incrAsync(key);
   }
@@ -128,7 +134,7 @@ var incrJ = function(client) {
 
 var callback = function(err, value) { return; }
 
-var setHashJ = function(client) {
+exports["setHashJ"] = function(client) {
   return function(key) {
     return function(value) {
       return client.hmset(key, value);
@@ -136,7 +142,7 @@ var setHashJ = function(client) {
   }
 }
 
-var getHashKeyJ = function(client) {
+exports["getHashKeyJ"] = function(client) {
   return function(key) {
     return function(field) {
       return client.hget(key, field, callback);
@@ -144,7 +150,7 @@ var getHashKeyJ = function(client) {
   }
 }
 
-var publishToChannelJ = function(client) {
+exports["publishToChannelJ"] = function(client) {
   return function(channel) {
     return function(message) {
       return client.publish(channel, message);
@@ -152,7 +158,7 @@ var publishToChannelJ = function(client) {
   }; 
 }
 
-var subscribeJ = function(client) {
+exports["subscribeJ"] = function(client) {
   return function(channel) {
     return function() {
       return client.subscribe(channel, callback)
@@ -166,7 +172,7 @@ var getDefaultRetryStratergyJ = function() {
   }
 }
 
-var setMessageHandlerJ = function(client) {
+exports["setMessageHandlerJ"] = function(client) {
   return function(handler) {
     return function() {
       client.on("message", function (channelName, channelData) {
@@ -175,7 +181,7 @@ var setMessageHandlerJ = function(client) {
   }
 }
 
-var enqueueJ = function(client) {
+exports["enqueueJ"] = function(client) {
   return function(listname) {
     return function(value) {
       return client.rpushAsync(listname, value);
@@ -183,13 +189,13 @@ var enqueueJ = function(client) {
   }
 }
 
-var dequeueJ = function(client) {
+exports["dequeueJ"] = function(client) {
   return function(listname) {
     return client.lpopAsync(listname);
   }
 }
 
-var getQueueIdxJ = function(client) {
+exports["getQueueIdxJ"] = function(client) {
   return function(listname) {
     return function(index) {
       return client.lindexAsync(listname, index);
@@ -197,19 +203,109 @@ var getQueueIdxJ = function(client) {
   }
 }
 
-exports._newCache = _newCache;
-exports.setJ = setJ;
-exports.setKeyJ = setKeyJ;
-exports.getKeyJ = getKeyJ;
-exports.setexJ = setexJ;
-exports.delKeyJ = delKeyJ;
-exports.expireJ = expireJ;
-exports.incrJ = incrJ;
-exports.setHashJ = setHashJ;
-exports.getHashKeyJ = getHashKeyJ;
-exports.publishToChannelJ = publishToChannelJ;
-exports.subscribeJ = subscribeJ;
-exports.setMessageHandlerJ = setMessageHandlerJ;
-exports.enqueueJ = enqueueJ;
-exports.dequeueJ = dequeueJ;
-exports.getQueueIdxJ = getQueueIdxJ;
+exports["setMultiJ"] = function(arr){
+    return function(multi){
+       return multi.set(arr);
+    }
+}
+
+exports["getKeyMultiJ"] = function(key){
+    return function(multi){
+       return multi.get(key);
+    }
+}
+
+exports["setKeyMultiJ"] = function(key){
+    return function(value){
+        return function(multi){
+            return multi.set(key,value);
+        }
+    }
+}
+
+exports["setexKeyMultiJ"] = function(key){
+    return function(val){
+        return function(ttl){
+            return function(multi){
+               return multi.setex(key, ttl, val);    
+            }
+        }
+    }
+}
+
+exports["delKeyMultiJ"] = function(key){
+    return function(multi){
+        return multi.del(key);
+    }
+}
+
+exports["expireMultiJ"] = function(key){
+    return function(ttl){
+        return function(multi){
+           return multi.expire(key,ttl);
+        }
+    }
+}
+
+exports["incrMultiJ"] = function(key){
+    return function(multi){
+            return multi.incr(key);
+    }
+}
+
+exports["setHashMultiJ"] = function(key){
+    return function(value){
+        return function(multi){
+           return multi.hmset(key,value);
+        }
+    }
+}
+
+exports["getHashMultiJ"] = function(key){
+    return function(value){
+        return function(multi){
+            return multi.hget(key, field);
+        } 
+    }
+}
+
+exports["publishCMultiJ"] = function(channel){
+    return function(message){
+        return function(multi){
+            return multi.publish(channel,message);
+        }
+    }
+}
+
+exports["subscribeMultiJ"] = function(channel){
+    return function(multi){
+        return multi.subscribe(channel);
+    }
+}
+
+exports["enqueueMultiJ"] = function(listName){
+    return function(value){
+        return function(multi){
+            return multi.rpush(listName,value);
+        }
+    }
+}
+
+exports["dequeueMultiJ"] = function(listName){
+    return function(multi){
+        return multi.lpop(listName);
+    }
+}
+
+exports["getQueueIdxMultiJ"] = function(listName){
+    return function(value){
+        return function(multi){
+            return multi.lindex(listName, value);
+        }
+    }
+}
+
+exports["execMulti"] = function(multi){
+    return multi.execAsync();
+}
+
