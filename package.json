@@ -18,6 +18,7 @@
   "license": "https://github.com/juspay/purescript-redis/blob/master/LICENSE",
   "homepage": "https://github.com/juspay/purescript-redis/README.md",
   "dependencies": {
+    "bluebird": "^3.5.1",
     "cls-bluebird": "^2.1.0",
     "redis": "^2.8.0",
     "zipkin": "^0.13.0",

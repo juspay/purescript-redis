@@ -25,17 +25,18 @@
 
 "use strict";
 
+// var Redis = require("ioredis");
 var redis = require("redis");
-
 var bluebird = require("bluebird");
+var env = process.env.NODE_ENV || 'DEV';
+
 var clsBluebird = require('cls-bluebird');
 var cls = require('cls-hooked');
 
 var ns = cls.getNamespace('zipkin') || cls.createNamespace('zipkin');
 clsBluebird(ns, bluebird);
 
-var env = process.env.NODE_ENV || 'DEV';
-const util = require('util');
+bluebird.promisifyAll(redis.RedisClient.prototype);
 
 var _newCache = function (options) {
   return function () {
@@ -78,7 +79,7 @@ var errorHandler = function(err) {
 var setKeyJ = function(client) {
   return function(key) {
     return function(value) {
-      return util.promisify(client.set).bind(client)(key, value);
+      return client.setAsync(key, value);
     };
   };
 }
@@ -87,7 +88,7 @@ var setexJ = function(client) {
   return function(key) {
     return function(value) {
       return function(ttl) {
-        return util.promisify(client.setex).bind(client)(key, ttl, value);
+        return client.setexAsync(key, ttl, value);
       };
     };
   };
@@ -95,33 +96,33 @@ var setexJ = function(client) {
 
 var setJ = function(client) {
   return function(arr) {
-    return util.promisify(client.set).bind(client)(arr);
+    return client.setAsync(arr)
   }
 }
 
 var getKeyJ = function(client) {
   return function(key) {
-    return util.promisify(client.get).bind(client)(key);
+    return client.getAsync(key);
   };
 };
 
 var delKeyJ = function(client) {
   return function(key) {
-    return util.promisify(client.del).bind(client)(key);
+    return client.delAsync(key);
   };
 };
 
 var expireJ = function(client) {
   return function(key) {
     return function(ttl) {
-      return util.promisify(client.expire).bind(client)(key, ttl);
+      return client.expire(key, ttl);
     }
   }
 }
 
 var incrJ = function(client) {
   return function(key) {
-    return util.promisify(client.incr).bind(client)(key, callback);
+    return client.incrAsync(key);
   }
 }
 
@@ -130,7 +131,7 @@ var callback = function(err, value) { return; }
 var setHashJ = function(client) {
   return function(key) {
     return function(value) {
-      return util.promisify(client.hmset).bind(client)(key, value);
+      return client.hmset(key, value);
     }
   }
 }
@@ -138,7 +139,7 @@ var setHashJ = function(client) {
 var getHashKeyJ = function(client) {
   return function(key) {
     return function(field) {
-      return util.promisify(client.hget).bind(client)(key, field, callback);
+      return client.hget(key, field, callback);
     }
   }
 }
@@ -146,7 +147,7 @@ var getHashKeyJ = function(client) {
 var publishToChannelJ = function(client) {
   return function(channel) {
     return function(message) {
-      return util.promisify(client.publish).bind(client)(channel, message);
+      return client.publish(channel, message);
     }
   }; 
 }
@@ -154,7 +155,7 @@ var publishToChannelJ = function(client) {
 var subscribeJ = function(client) {
   return function(channel) {
     return function() {
-      return util.promisify(client.subscribe).bind(client)(channel, callback);
+      return client.subscribe(channel, callback)
     }
   }
 }
@@ -174,6 +175,28 @@ var setMessageHandlerJ = function(client) {
   }
 }
 
+var enqueueJ = function(client) {
+  return function(listname) {
+    return function(value) {
+      return client.rpushAsync(listname, value);
+    }
+  }
+}
+
+var dequeueJ = function(client) {
+  return function(listname) {
+    return client.lpopAsync(listname);
+  }
+}
+
+var getQueueIdxJ = function(client) {
+  return function(listname) {
+    return function(index) {
+      return client.lindexAsync(listname, index);
+    }
+  }
+}
+
 exports._newCache = _newCache;
 exports.setJ = setJ;
 exports.setKeyJ = setKeyJ;
@@ -187,3 +210,6 @@ exports.getHashKeyJ = getHashKeyJ;
 exports.publishToChannelJ = publishToChannelJ;
 exports.subscribeJ = subscribeJ;
 exports.setMessageHandlerJ = setMessageHandlerJ;
+exports.enqueueJ = enqueueJ;
+exports.dequeueJ = dequeueJ;
+exports.getQueueIdxJ = getQueueIdxJ;
