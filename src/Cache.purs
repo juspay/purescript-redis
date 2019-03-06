@@ -94,7 +94,7 @@ foreign import setMessageHandlerJ :: forall eff1 eff2. CacheConn -> (String -> S
 foreign import _newCache :: forall e. Foreign -> CacheEff e CacheConn
 foreign import _newMulti :: forall e. CacheConn -> CacheEff e Multi
 foreign import execMulti :: Multi -> Promise (Array String)
-foreign import enqueueJ :: CacheConn -> String -> String -> Promise String
+foreign import enqueueJ :: CacheConn -> String -> String -> Promise Int
 foreign import dequeueJ :: CacheConn -> String -> Promise String
 foreign import getQueueIdxJ :: CacheConn -> String -> Int -> Promise String
 
@@ -197,7 +197,7 @@ subscribe cacheConn channel = attempt $ toAffE $ subscribeJ cacheConn channel
 enqueueMulti :: forall e. String -> String -> Multi -> CacheAff e Multi
 enqueueMulti listName value = pure <<< enqueueMultiJ listName value
 
-enqueue :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error String)
+enqueue :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error Int)
 enqueue cacheConn listName value = attempt $ toAff $ enqueueJ cacheConn listName value
 
 dequeueMulti :: forall e. String -> Multi -> CacheAff e Multi
