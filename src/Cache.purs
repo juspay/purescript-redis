@@ -25,11 +25,13 @@ import Control.Monad.Aff (Aff, attempt)
 import Control.Monad.Eff (Eff, kind Effect)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (Error)
+import Control.Monad.Except (runExcept)
 import Control.Promise (Promise, toAff, toAffE)
-import Data.Either (Either)
-import Data.Foreign (Foreign)
+import Data.Either (Either, hush)
+import Data.Foreign (Foreign, readString)
+import Data.Maybe (Maybe)
 import Data.Options (Option, Options, opt, options)
-import Prelude (Unit, pure, ($), (<<<))
+import Prelude (Unit, ($), (<<<), map, pure)
 foreign import data CacheConn :: Type
 
 foreign import data Multi :: Type
@@ -95,7 +97,7 @@ foreign import _newCache :: forall e. Foreign -> CacheEff e CacheConn
 foreign import _newMulti :: forall e. CacheConn -> CacheEff e Multi
 foreign import execMulti :: Multi -> Promise (Array String)
 foreign import enqueueJ :: CacheConn -> String -> String -> Promise Int
-foreign import dequeueJ :: CacheConn -> String -> Promise String
+foreign import dequeueJ :: CacheConn -> String -> Promise Foreign
 foreign import getQueueIdxJ :: CacheConn -> String -> Int -> Promise String
 
 foreign import setMultiJ ::  Array String -> MultiToMulti  
@@ -203,8 +205,10 @@ enqueue cacheConn listName value = attempt $ toAff $ enqueueJ cacheConn listName
 dequeueMulti :: forall e. String -> Multi -> CacheAff e Multi
 dequeueMulti listName = pure <<< dequeueMultiJ listName
 
-dequeue :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
-dequeue cacheConn listName = attempt $ toAff $ dequeueJ cacheConn listName
+dequeue :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
+dequeue cacheConn listName = attempt $ map readStringMaybe $ toAff $ dequeueJ cacheConn listName
+  where
+        readStringMaybe = hush <<< runExcept <<< readString
 
 getQueueIdxMulti :: forall e. String -> Int -> Multi -> CacheAff e Multi
 getQueueIdxMulti listName index = pure <<< getQueueIdxMultiJ  listName index
