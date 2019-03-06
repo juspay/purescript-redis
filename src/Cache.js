@@ -181,7 +181,7 @@ exports["setMessageHandlerJ"] = function(client) {
   }
 }
 
-exports["enqueueJ"] = function(client) {
+exports["rpushJ"] = function(client) {
   return function(listname) {
     return function(value) {
       return client.rpushAsync(listname, value);
@@ -189,13 +189,13 @@ exports["enqueueJ"] = function(client) {
   }
 }
 
-exports["dequeueJ"] = function(client) {
+exports["lpopJ"] = function(client) {
   return function(listname) {
     return client.lpopAsync(listname);
   }
 }
 
-exports["getQueueIdxJ"] = function(client) {
+exports["lindexJ"] = function(client) {
   return function(listname) {
     return function(index) {
       return client.lindexAsync(listname, index);
@@ -283,7 +283,7 @@ exports["subscribeMultiJ"] = function(channel){
     }
 }
 
-exports["enqueueMultiJ"] = function(listName){
+exports["rpushMultiJ"] = function(listName){
     return function(value){
         return function(multi){
             return multi.rpush(listName,value);
@@ -291,13 +291,13 @@ exports["enqueueMultiJ"] = function(listName){
     }
 }
 
-exports["dequeueMultiJ"] = function(listName){
+exports["lpopMultiJ"] = function(listName){
     return function(multi){
         return multi.lpop(listName);
     }
 }
 
-exports["getQueueIdxMultiJ"] = function(listName){
+exports["lindexMultiJ"] = function(listName){
     return function(value){
         return function(multi){
             return multi.lindex(listName, value);

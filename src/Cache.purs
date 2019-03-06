@@ -96,9 +96,9 @@ foreign import setMessageHandlerJ :: forall eff1 eff2. CacheConn -> (String -> S
 foreign import _newCache :: forall e. Foreign -> CacheEff e CacheConn
 foreign import _newMulti :: forall e. CacheConn -> CacheEff e Multi
 foreign import execMulti :: Multi -> Promise (Array String)
-foreign import enqueueJ :: CacheConn -> String -> String -> Promise Int
-foreign import dequeueJ :: CacheConn -> String -> Promise Foreign
-foreign import getQueueIdxJ :: CacheConn -> String -> Int -> Promise String
+foreign import rpushJ :: CacheConn -> String -> String -> Promise Int
+foreign import lpopJ :: CacheConn -> String -> Promise Foreign
+foreign import lindexJ :: CacheConn -> String -> Int -> Promise String
 
 foreign import setMultiJ ::  Array String -> MultiToMulti  
 foreign import getKeyMultiJ ::  String -> MultiToMulti
@@ -111,9 +111,9 @@ foreign import setHashMultiJ :: String -> String -> MultiToMulti
 foreign import getHashMultiJ :: String -> String -> MultiToMulti 
 foreign import publishCMultiJ :: String -> String -> MultiToMulti
 foreign import subscribeMultiJ :: String -> MultiToMulti
-foreign import enqueueMultiJ :: String -> String -> MultiToMulti
-foreign import dequeueMultiJ :: String -> MultiToMulti
-foreign import getQueueIdxMultiJ :: String -> Int -> MultiToMulti
+foreign import rpushMultiJ :: String -> String -> MultiToMulti
+foreign import lpopMultiJ :: String -> MultiToMulti
+foreign import lindexMultiJ :: String -> Int -> MultiToMulti
 
 getConn :: forall e. Options CacheConnOpts -> CacheAff e CacheConn
 getConn = liftEff <<< _newCache <<< options
@@ -196,25 +196,25 @@ subscribeMulti channel =  pure <<< subscribeMultiJ channel
 subscribe :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
 subscribe cacheConn channel = attempt $ toAffE $ subscribeJ cacheConn channel
 
-enqueueMulti :: forall e. String -> String -> Multi -> CacheAff e Multi
-enqueueMulti listName value = pure <<< enqueueMultiJ listName value
+rpushMulti :: forall e. String -> String -> Multi -> CacheAff e Multi
+rpushMulti listName value = pure <<< rpushMultiJ listName value
 
-enqueue :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error Int)
-enqueue cacheConn listName value = attempt $ toAff $ enqueueJ cacheConn listName value
+rpush :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error Int)
+rpush cacheConn listName value = attempt $ toAff $ rpushJ cacheConn listName value
 
-dequeueMulti :: forall e. String -> Multi -> CacheAff e Multi
-dequeueMulti listName = pure <<< dequeueMultiJ listName
+lpopMulti :: forall e. String -> Multi -> CacheAff e Multi
+lpopMulti listName = pure <<< lpopMultiJ listName
 
-dequeue :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
-dequeue cacheConn listName = attempt $ map readStringMaybe $ toAff $ dequeueJ cacheConn listName
+lpop :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
+lpop cacheConn listName = attempt $ map readStringMaybe $ toAff $ lpopJ cacheConn listName
   where
         readStringMaybe = hush <<< runExcept <<< readString
 
-getQueueIdxMulti :: forall e. String -> Int -> Multi -> CacheAff e Multi
-getQueueIdxMulti listName index = pure <<< getQueueIdxMultiJ  listName index
+lindexMulti :: forall e. String -> Int -> Multi -> CacheAff e Multi
+lindexMulti listName index = pure <<< lindexMultiJ  listName index
 
-getQueueIdx :: forall e. CacheConn -> String -> Int -> CacheAff e  (Either Error String)
-getQueueIdx cacheConn listName index = attempt $ toAff $ getQueueIdxJ cacheConn listName index
+lindex :: forall e. CacheConn -> String -> Int -> CacheAff e  (Either Error String)
+lindex cacheConn listName index = attempt $ toAff $ lindexJ cacheConn listName index
 
 setMessageHandler :: forall e eff. CacheConn -> (String -> String -> Eff eff Unit) -> CacheAff e  (Either Error String)
 setMessageHandler cacheConn f = attempt $ toAffE $ setMessageHandlerJ cacheConn f
