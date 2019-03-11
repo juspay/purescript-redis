@@ -136,16 +136,18 @@ var callback = function(err, value) { return; }
 
 exports["setHashJ"] = function(client) {
   return function(key) {
-    return function(value) {
-      return client.hmset(key, value);
-    }
+      return function(field){
+        return function(value) {
+          return client.hsetAsync(key, field, value);
+        }
+      }
   }
 }
 
 exports["getHashKeyJ"] = function(client) {
   return function(key) {
     return function(field) {
-      return client.hget(key, field, callback);
+      return client.hgetAsync(key, field);
     }
   }
 }
@@ -254,15 +256,17 @@ exports["incrMultiJ"] = function(key){
 }
 
 exports["setHashMultiJ"] = function(key){
-    return function(value){
-        return function(multi){
-           return multi.hmset(key,value);
+    return function(field){
+        return function(value){
+            return function(multi){
+               return multi.hset(key, field, value);
+            }
         }
     }
 }
 
 exports["getHashMultiJ"] = function(key){
-    return function(value){
+    return function(field){
         return function(multi){
             return multi.hget(key, field);
         } 
