@@ -88,7 +88,7 @@ foreign import setexJ :: CacheConn -> String -> String -> String -> Promise Stri
 foreign import delKeyJ :: CacheConn -> Array String -> Promise String
 foreign import expireJ :: CacheConn -> String -> String -> Promise String
 foreign import incrJ :: CacheConn -> String -> Promise String
-foreign import setHashJ :: CacheConn -> String -> String -> Promise String
+foreign import setHashJ :: CacheConn -> String -> String -> String -> Promise String
 foreign import getHashKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
 foreign import subscribeJ :: forall eff. CacheConn -> String -> Eff eff (Promise String)
@@ -107,7 +107,7 @@ foreign import setexKeyMultiJ :: String -> String -> String -> MultiToMulti
 foreign import delKeyMultiJ :: Array String -> MultiToMulti
 foreign import expireMultiJ :: String -> String -> MultiToMulti
 foreign import incrMultiJ ::  String -> MultiToMulti
-foreign import setHashMultiJ :: String -> String -> MultiToMulti
+foreign import setHashMultiJ :: String -> String -> String -> MultiToMulti
 foreign import getHashMultiJ :: String -> String -> MultiToMulti 
 foreign import publishCMultiJ :: String -> String -> MultiToMulti
 foreign import subscribeMultiJ :: String -> MultiToMulti
@@ -172,11 +172,11 @@ incrMulti key = pure <<< incrMultiJ key
 incr :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
 incr cacheConn key = attempt $ toAff $ incrJ cacheConn key
 
-setHashMulti :: forall e. String -> String -> Multi -> CacheAff e Multi
-setHashMulti key val = pure <<< setHashMultiJ key val
+setHashMulti :: forall e. String -> String -> String -> Multi -> CacheAff e Multi
+setHashMulti key field val = pure <<< setHashMultiJ key field val
 
-setHash :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error String)
-setHash cacheConn key value = attempt $ toAff $ setHashJ cacheConn key value
+setHash :: forall e. CacheConn -> String -> String -> String -> CacheAff e  (Either Error String)
+setHash cacheConn key field value = attempt $ toAff $ setHashJ cacheConn key field value
 
 getHashKeyMulti :: forall e. String -> String -> Multi -> CacheAff e Multi
 getHashKeyMulti key field = pure <<< getHashMultiJ key field
