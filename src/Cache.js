@@ -189,6 +189,14 @@ exports["setMessageHandlerJ"] = function(client) {
   }
 }
 
+exports["rpopJ"] = function(client) {
+  return function(listname) {
+    return function(value) {
+      return client.rpopAsync(listname, value);
+    }
+  }
+}
+
 exports["rpushJ"] = function(client) {
   return function(listname) {
     return function(value) {
@@ -200,6 +208,12 @@ exports["rpushJ"] = function(client) {
 exports["lpopJ"] = function(client) {
   return function(listname) {
     return client.lpopAsync(listname);
+  }
+}
+
+exports["lpushJ"] = function(client) {
+  return function(listname) {
+    return client.lpushAsync(listname);
   }
 }
 
@@ -293,6 +307,14 @@ exports["subscribeMultiJ"] = function(channel){
     }
 }
 
+exports["rpopMultiJ"] = function(listName){
+    return function(value){
+        return function(multi){
+            return multi.rpop(listName,value);
+        }
+    }
+}
+
 exports["rpushMultiJ"] = function(listName){
     return function(value){
         return function(multi){
@@ -304,6 +326,12 @@ exports["rpushMultiJ"] = function(listName){
 exports["lpopMultiJ"] = function(listName){
     return function(multi){
         return multi.lpop(listName);
+    }
+}
+
+exports["lpushMultiJ"] = function(listName){
+    return function(multi){
+        return multi.lpush(listName);
     }
 }
 
