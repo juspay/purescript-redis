@@ -150,7 +150,7 @@ getKey :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
 getKey cacheConn key = attempt $ toAff $ getKeyJ cacheConn key
 
 exists :: forall e. CacheConn -> String -> CacheAff e  (Either Error Boolean)
-exists conn = attempt <<< toAff <<< existsJ conn
+exists cacheConn = attempt <<< toAff <<< existsJ cacheConn
 
 delKeyMulti :: forall e. String -> Multi -> CacheAff e Multi
 delKeyMulti key = pure <<< delKeyMultiJ [key]
