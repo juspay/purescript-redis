@@ -19,7 +19,58 @@
  along with this program. If not, see <https://www.gnu.org/licenses/agpl.html>.
 -}
 
-module Cache where
+module Cache
+ ( CACHE
+ , CacheAff
+ , CacheConn
+ , CacheConnOpts
+ , Multi
+ , db
+ , delKey
+ , delKeyList
+ , delKeyListMulti
+ , delKeyMulti
+ , exec
+ , exists
+ , expire
+ , expireMulti
+ , getConn
+ , getHashKey
+ , getHashKeyMulti
+ , getKey
+ , getKeyMulti
+ , getMulti
+ , host
+ , incr
+ , incrMulti
+ , lindex
+ , lindexMulti
+ , lpop
+ , lpopMulti
+ , port
+ , publishToChannel
+ , publishToChannelMulti
+ , retryStrategy
+ , rpush
+ , rpushMulti
+ , set
+ , setex
+ , setexKeyMulti
+ , setHash
+ , setHashMulti
+ , setKey
+ , setKeyMulti
+ , setMessageHandler
+ , setMulti
+ , socketKeepAlive
+ , subscribe
+ , subscribeMulti
+ , tryAfter
+ , zipkinEnable
+ , zipkinRedis
+ , zipkinServiceName
+ , zipkinURL
+ ) where
 
 import Control.Monad.Aff (Aff, attempt)
 import Control.Monad.Eff (Eff, kind Effect)
@@ -32,6 +83,7 @@ import Data.Foreign (Foreign, readString)
 import Data.Maybe (Maybe)
 import Data.Options (Option, Options, opt, options)
 import Prelude (Unit, ($), (<<<), map, pure)
+
 foreign import data CacheConn :: Type
 
 foreign import data Multi :: Type
