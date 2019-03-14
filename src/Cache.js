@@ -112,6 +112,12 @@ exports["getKeyJ"] = function(client) {
   };
 };
 
+exports["existsJ"] = function(client) {
+  return function(key) {
+    return client.existsAsync(key);
+  };
+};
+
 exports["delKeyJ"] = function(client) {
   return function(key) {
     return client.delAsync(key);
@@ -312,4 +318,3 @@ exports["lindexMultiJ"] = function(listName){
 exports["execMulti"] = function(multi){
     return multi.execAsync();
 }
-

@@ -84,6 +84,7 @@ zipkinServiceName = opt "zipkinServiceName"
 foreign import setJ :: CacheConn -> Array String -> Promise String
 foreign import setKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import getKeyJ :: CacheConn -> String -> Promise String
+foreign import existsJ :: CacheConn -> String -> Promise Boolean
 foreign import setexJ :: CacheConn -> String -> String -> String -> Promise String
 foreign import delKeyJ :: CacheConn -> Array String -> Promise String
 foreign import expireJ :: CacheConn -> String -> String -> Promise String
@@ -147,6 +148,9 @@ getKeyMulti val =  pure <<< getKeyMultiJ val
 
 getKey :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
 getKey cacheConn key = attempt $ toAff $ getKeyJ cacheConn key
+
+exists :: forall e. CacheConn -> String -> CacheAff e  (Either Error Boolean)
+exists cacheConn = attempt <<< toAff <<< existsJ cacheConn
 
 delKeyMulti :: forall e. String -> Multi -> CacheAff e Multi
 delKeyMulti key = pure <<< delKeyMultiJ [key]
