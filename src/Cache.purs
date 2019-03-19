@@ -157,7 +157,7 @@ foreign import rpopJ :: CacheConn -> String -> Promise Foreign
 foreign import rpushJ :: CacheConn -> String -> String -> Promise Int
 foreign import lpopJ :: CacheConn -> String -> Promise Foreign
 foreign import lpushJ :: CacheConn -> String -> String -> Promise Int
-foreign import lindexJ :: CacheConn -> String -> Int -> Promise String
+foreign import lindexJ :: CacheConn -> String -> Int -> Promise Foreign
 
 foreign import setMultiJ ::  Array String -> MultiToMulti  
 foreign import getKeyMultiJ ::  String -> MultiToMulti
@@ -290,8 +290,8 @@ lpush cacheConn listName value = attempt $ toAff $ lpushJ cacheConn listName val
 lindexMulti :: forall e. String -> Int -> Multi -> CacheAff e Multi
 lindexMulti listName index = pure <<< lindexMultiJ  listName index
 
-lindex :: forall e. CacheConn -> String -> Int -> CacheAff e  (Either Error String)
-lindex cacheConn listName index = attempt $ toAff $ lindexJ cacheConn listName index
+lindex :: forall e. CacheConn -> String -> Int -> CacheAff e  (Either Error (Maybe String))
+lindex cacheConn listName index = attempt $ map readStringMaybe $ toAff $ lindexJ cacheConn listName index
 
 setMessageHandler :: forall e eff. CacheConn -> (String -> String -> Eff eff Unit) -> CacheAff e  (Either Error String)
 setMessageHandler cacheConn f = attempt $ toAffE $ setMessageHandlerJ cacheConn f
