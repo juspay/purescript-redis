@@ -19,7 +19,62 @@
  along with this program. If not, see <https://www.gnu.org/licenses/agpl.html>.
 -}
 
-module Cache where
+module Cache
+ ( CACHE
+ , CacheAff
+ , CacheConn
+ , CacheConnOpts
+ , Multi
+ , db
+ , delKey
+ , delKeyList
+ , delKeyListMulti
+ , delKeyMulti
+ , exec
+ , exists
+ , expire
+ , expireMulti
+ , getConn
+ , getHashKey
+ , getHashKeyMulti
+ , getKey
+ , getKeyMulti
+ , getMulti
+ , host
+ , incr
+ , incrMulti
+ , lindex
+ , lindexMulti
+ , lpop
+ , lpopMulti
+ , lpush
+ , lpushMulti
+ , port
+ , publishToChannel
+ , publishToChannelMulti
+ , retryStrategy
+ , rpop
+ , rpopMulti
+ , rpush
+ , rpushMulti
+ , set
+ , setex
+ , setexKeyMulti
+ , setHash
+ , setHashMulti
+ , setKey
+ , setKeyMulti
+ , setMessageHandler
+ , setMulti
+ , socketKeepAlive
+ , subscribe
+ , subscribeMulti
+ , tryAfter
+ , zipkinEnable
+ , zipkinRedis
+ , zipkinServiceName
+ , zipkinURL
+ ) where
 
 import Control.Monad.Aff (Aff, attempt)
 import Control.Monad.Eff (Eff, kind Effect)
@@ -32,6 +87,7 @@ import Data.Foreign (Foreign, readString)
 import Data.Maybe (Maybe)
 import Data.Options (Option, Options, opt, options)
 import Prelude (Unit, ($), (<<<), map, pure)
+
 foreign import data CacheConn :: Type
 
 foreign import data Multi :: Type
@@ -97,9 +153,11 @@ foreign import setMessageHandlerJ :: forall eff1 eff2. CacheConn -> (String -> S
 foreign import _newCache :: forall e. Foreign -> CacheEff e CacheConn
 foreign import _newMulti :: forall e. CacheConn -> CacheEff e Multi
 foreign import execMulti :: Multi -> Promise (Array String)
+foreign import rpopJ :: CacheConn -> String -> Promise Foreign
 foreign import rpushJ :: CacheConn -> String -> String -> Promise Int
 foreign import lpopJ :: CacheConn -> String -> Promise Foreign
-foreign import lindexJ :: CacheConn -> String -> Int -> Promise String
+foreign import lpushJ :: CacheConn -> String -> String -> Promise Int
+foreign import lindexJ :: CacheConn -> String -> Int -> Promise Foreign
 
 foreign import setMultiJ ::  Array String -> MultiToMulti  
 foreign import getKeyMultiJ ::  String -> MultiToMulti
@@ -112,8 +170,10 @@ foreign import setHashMultiJ :: String -> String -> String -> MultiToMulti
 foreign import getHashMultiJ :: String -> String -> MultiToMulti 
 foreign import publishCMultiJ :: String -> String -> MultiToMulti
 foreign import subscribeMultiJ :: String -> MultiToMulti
+foreign import rpopMultiJ :: String -> MultiToMulti
 foreign import rpushMultiJ :: String -> String -> MultiToMulti
 foreign import lpopMultiJ :: String -> MultiToMulti
+foreign import lpushMultiJ :: String -> String -> MultiToMulti
 foreign import lindexMultiJ :: String -> Int -> MultiToMulti
 
 getConn :: forall e. Options CacheConnOpts -> CacheAff e CacheConn
@@ -200,6 +260,15 @@ subscribeMulti channel =  pure <<< subscribeMultiJ channel
 subscribe :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
 subscribe cacheConn channel = attempt $ toAffE $ subscribeJ cacheConn channel
 
+readStringMaybe :: Foreign -> Maybe String
+readStringMaybe = hush <<< runExcept <<< readString
+
+rpopMulti :: forall e. String -> Multi -> CacheAff e Multi
+rpopMulti listName = pure <<< rpopMultiJ listName
+
+rpop :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
+rpop cacheConn listName = attempt $ map readStringMaybe $ toAff $ rpopJ cacheConn listName
+
 rpushMulti :: forall e. String -> String -> Multi -> CacheAff e Multi
 rpushMulti listName value = pure <<< rpushMultiJ listName value
 
@@ -211,14 +280,18 @@ lpopMulti listName = pure <<< lpopMultiJ listName
 
 lpop :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
 lpop cacheConn listName = attempt $ map readStringMaybe $ toAff $ lpopJ cacheConn listName
-  where
-        readStringMaybe = hush <<< runExcept <<< readString
+
+lpushMulti :: forall e. String -> String -> Multi -> CacheAff e Multi
+lpushMulti listName value = pure <<< lpushMultiJ listName value
+
+lpush :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error Int)
+lpush cacheConn listName value = attempt $ toAff $ lpushJ cacheConn listName value
 
 lindexMulti :: forall e. String -> Int -> Multi -> CacheAff e Multi
 lindexMulti listName index = pure <<< lindexMultiJ  listName index
 
-lindex :: forall e. CacheConn -> String -> Int -> CacheAff e  (Either Error String)
-lindex cacheConn listName index = attempt $ toAff $ lindexJ cacheConn listName index
+lindex :: forall e. CacheConn -> String -> Int -> CacheAff e  (Either Error (Maybe String))
+lindex cacheConn listName index = attempt $ map readStringMaybe $ toAff $ lindexJ cacheConn listName index
 
 setMessageHandler :: forall e eff. CacheConn -> (String -> String -> Eff eff Unit) -> CacheAff e  (Either Error String)
 setMessageHandler cacheConn f = attempt $ toAffE $ setMessageHandlerJ cacheConn f
