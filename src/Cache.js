@@ -224,6 +224,119 @@ exports["lindexJ"] = function(client) {
     }
   }
 }
+////////////////////////////////////// Redis Streams ///////////////////////////////
+
+exports["xackJ"] = function(client) { 
+  return function(streamName) {  
+    return function(groupName) {
+      return function(uniqueMessageIdentifier) {
+        return client.xackAsync(streamName, groupName, uniqueMessageIdentifier);
+      }
+    }
+  }
+}
+
+exports["xaddJ"] = function(client) {
+  return function(streamName) {
+    return function(uniqueMessageIdentifier) {
+      return function(field) {
+        return function(value) {
+          return client.xaddAsync(streamName, uniqueMessageIdentifier, field, value);
+        }
+      }
+    }
+  }
+}
+
+exports["xclaimJ"] = function(client) {
+  return function(streamName) {
+    return function(groupName) {
+      return function(consumerName) {
+        return function(minIdleTime) {
+          return function(uniqueMessageIdentifier) {
+            return client.xclaimAsync(streamName, groupName, consumerName, minIdleTime, uniqueMessageIdentifier);
+          }
+        }
+      }
+    }
+  }
+}
+
+exports["xdelJ"] = function(client) {
+  return function(streamName) {
+    return function(uniqueMessageIdentifier) {
+      return client.xdelAsync(streamName, uniqueMessageIdentifier);
+    }
+  }
+}
+
+// this has four subflows - create, destroy, delconsumer, setId, help
+exports["xgroupJ"] = function(client) {
+  return function(listname) {
+    return function(index) {
+      return client.xgroupAsync(listname, index);
+    }
+  }
+}
+
+exports["xlenJ"] = function(client) {
+  return function(streamName) {
+    return client.xlenAsync(streamName);
+  }
+}
+
+exports["xpendingJ"] = function(client) {
+  return function(listname) {
+    return function(index) {
+      return client.xpendingAsync(listname, index);
+    }
+  }
+}
+
+exports["xrangeJ"] = function(client) {
+  return function(listname) {
+    return function(index) {
+      return client.xrangeAsync(listname, index);
+    }
+  }
+}
+
+exports["xreadJ"] = function(client) {
+  return function(listname) {
+    return function(index) {
+      return client.xreadAsync(listname, index);
+    }
+  }
+}
+
+exports["xreadgroupJ"] = function(client) {
+  return function(listname) {
+    return function(index) {
+      return client.xreadgroupAsync(listname, index);
+    }
+  }
+}
+
+exports["xrevrangeJ"] = function(client) {
+  return function(listname) {
+    return function(index) {
+      return client.xrevrangeAsync(listname, index);
+    }
+  }
+}
+
+
+
+exports["xtrimJ"] = function(client) {
+  return function(listname) {
+    return function(index) {
+      return client.xtrimAsync(listname, index);
+    }
+  }
+}
+
+
+////////////////////////////////////// Redis Streams ///////////////////////////////
 
 exports["setMultiJ"] = function(arr){
     return function(multi){
@@ -346,3 +459,5 @@ exports["lindexMultiJ"] = function(listName){
 exports["execMulti"] = function(multi){
     return multi.execAsync();
 }
+
+

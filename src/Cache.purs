@@ -158,6 +158,18 @@ foreign import rpushJ :: CacheConn -> String -> String -> Promise Int
 foreign import lpopJ :: CacheConn -> String -> Promise Foreign
 foreign import lpushJ :: CacheConn -> String -> String -> Promise Int
 foreign import lindexJ :: CacheConn -> String -> Int -> Promise Foreign
+foreign import xackJ :: CacheConn -> Promise String
+foreign import xaddJ :: CacheConn -> Promise String
+foreign import xclaimJ :: CacheConn -> Promise String
+foreign import xdelJ :: CacheConn -> Promise String
+foreign import xgroupJ :: CacheConn -> Promise String
+foreign import xlenJ :: CacheConn -> Promise String
+foreign import xpendingJ :: CacheConn -> Promise String
+foreign import xrangeJ :: CacheConn -> Promise String
+foreign import xreadJ :: CacheConn -> Promise String
+foreign import xreadgroupJ :: CacheConn -> Promise String
+foreign import xrevrangeJ :: CacheConn -> Promise String
+foreign import xtrimJ :: CacheConn -> Promise String
 
 foreign import setMultiJ ::  Array String -> MultiToMulti  
 foreign import getKeyMultiJ ::  String -> MultiToMulti

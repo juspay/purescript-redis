@@ -9,6 +9,7 @@ import Data.Options (options, (:=))
 import Debug.Trace (spy, traceShow)
 import Test.Multi (multiTest)
 import Test.Queue (queueTest)
+import Test.RedisStreams (redisStreamTest)
 
 foreign import startContext :: forall e a. String -> Eff e a -> Eff e Unit
 
@@ -18,6 +19,7 @@ startTest = do
     cacheConn <- C.getConn cacheOpts
     multiTest cacheConn
     queueTest cacheConn
+    redisStreamTest cacheConn
     pure unit
 
 main :: forall e. Eff _ Unit
