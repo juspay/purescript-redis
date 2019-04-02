@@ -20,11 +20,7 @@
 -}
 
 module Cache
- ( CACHE
- , CacheAff
- , CacheConn
- , CacheConnOpts
- , Multi
+ ( module Cache.Types
  , db
  , delKey
  , delKeyList
@@ -76,6 +72,8 @@ module Cache
  , zipkinURL
  ) where
 
+import Cache.Types (CACHE, CacheAff, CacheConn, CacheConnOpts, CacheEff, Multi, MultiToMulti)
+
 import Control.Monad.Aff (Aff, attempt)
 import Control.Monad.Eff (Eff, kind Effect)
 import Control.Monad.Eff.Class (liftEff)
@@ -86,19 +84,7 @@ import Data.Either (Either, hush)
 import Data.Foreign (Foreign, readString)
 import Data.Maybe (Maybe)
 import Data.Options (Option, Options, opt, options)
-import Prelude (Unit, ($), (<<<), map, pure)
-
-foreign import data CacheConn :: Type
-
-foreign import data Multi :: Type
-
-foreign import data CACHE :: Effect
-
-data CacheConnOpts
-
-type CacheEff e = Eff (cache :: CACHE | e)
-type CacheAff e = Aff (cache :: CACHE | e)
-type MultiToMulti = Multi -> Multi
+import Prelude (Unit, map, pure, ($), (<<<))
 
 host :: Option CacheConnOpts String
 host = opt "host"
@@ -295,4 +281,3 @@ lindex cacheConn listName index = attempt $ map readStringMaybe $ toAff $ lindex
 
 setMessageHandler :: forall e eff. CacheConn -> (String -> String -> Eff eff Unit) -> CacheAff e  (Either Error String)
 setMessageHandler cacheConn f = attempt $ toAffE $ setMessageHandlerJ cacheConn f
-
