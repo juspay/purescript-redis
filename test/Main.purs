@@ -8,6 +8,7 @@ import Control.Monad.Eff (Eff)
 import Data.Options ((:=))
 import Test.Multi (multiTest)
 import Test.Queue (queueTest)
+import Test.Stream (streamTest)
 
 startTest :: Aff _ Unit
 startTest = do
@@ -15,6 +16,7 @@ startTest = do
     cacheConn <- C.getConn cacheOpts
     multiTest cacheConn
     queueTest cacheConn
+    streamTest cacheConn
     pure unit
 
 main :: Eff _ Unit
