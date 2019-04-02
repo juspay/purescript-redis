@@ -36,3 +36,11 @@ exports["xaddJ"] = function(client, key, id, args) {
 exports["xlenJ"] = function(client, key) {
   return client.xlenAsync(key);
 }
+
+exports["xtrimJ"] = function(client, key, strategy, approx, len) {
+  if (approx) {
+    return client.xtrimAsync(key, strategy, "~", len);
+  } else {
+    return client.xtrimAsync(key, strategy, len);
+  }
+}

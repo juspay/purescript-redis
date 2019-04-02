@@ -73,7 +73,7 @@ module Cache
  , zipkinURL
  ) where
 
-import Cache.Stream (EntryID(..), newEntryId, xadd, xlen)
+import Cache.Stream (EntryID(..), TrimStrategy(..), newEntryId, xadd, xlen, xtrim)
 import Cache.Types (CACHE, CacheAff, CacheConn, CacheConnOpts, CacheEff, Multi, MultiToMulti)
 
 import Control.Monad.Aff (Aff, attempt)

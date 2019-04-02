@@ -1,12 +1,12 @@
 module Test.Stream where
 
-import Cache (CacheConn, EntryID(..), xadd, xlen)
+import Cache (CacheConn, EntryID(..), TrimStrategy(..), delKey, xadd, xlen, xtrim)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Class (liftEff)
 import Data.Array (singleton)
 import Data.Either (Either(..))
 import Data.Tuple.Nested ((/\))
-import Prelude (Unit, bind, discard, pure, show, unit, ($), (<>))
+import Prelude (Unit, bind, discard, pure, show, unit, ($), (<>), (==))
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (fail)
 import Test.Spec.Reporter (consoleReporter)
@@ -33,3 +33,13 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
         case id of
              Right v  -> pure unit
              Left err -> fail $ "Add failed: " <> show err
+     --it "returns 1 on first (forced) trim" do
+        len <- xtrim cacheConn testQueue Maxlen false 0
+        case len of
+             Right v  -> if v == 1 then pure unit else fail $ "Bad value: " <> show v
+             Left err -> fail $ "Bad value: " <> show err
+     --it "returns 0 on second (approximate) trim" do
+        len <- xtrim cacheConn testQueue Maxlen true 0
+        case len of
+             Right v  -> if v == 0 then pure unit else fail $ "Bad value: " <> show v
+             Left err -> fail $ "Bad value: " <> show err

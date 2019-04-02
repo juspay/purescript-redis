@@ -1,8 +1,10 @@
 module Cache.Stream
   ( EntryID(AutoID)
+  , TrimStrategy(..)
   , newEntryId
   , xadd
   , xlen
+  , xtrim
   ) where
 
 import Cache.Types (CacheConn, CacheAff)
@@ -15,7 +17,7 @@ import Data.BigInt (BigInt)
 import Data.BigInt (fromInt, fromString, shl) as BigInt
 import Data.Either (Either)
 import Data.Foldable (foldMap)
-import Data.Function.Uncurried (Fn2, Fn4, runFn2, runFn4)
+import Data.Function.Uncurried (Fn2, Fn4, Fn5, runFn2, runFn4, runFn5)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.String (Pattern(..))
 import Data.String.CodePoints (split)
@@ -70,3 +72,13 @@ foreign import xlenJ :: Fn2 CacheConn String (Promise Int)
 -- empty stream
 xlen :: forall e. CacheConn -> String -> CacheAff e (Either Error Int)
 xlen cacheConn key = attempt <<< toAff $ runFn2 xlenJ cacheConn key
+
+data TrimStrategy = Maxlen
+
+instance showTrimStrategy :: Show TrimStrategy where
+  show Maxlen = "MAXLEN"
+
+foreign import xtrimJ :: Fn5 CacheConn String String Boolean Int (Promise Int)
+
+xtrim :: forall e. CacheConn -> String -> TrimStrategy -> Boolean -> Int -> CacheAff e (Either Error Int)
+xtrim cacheConn key strategy approx len = attempt <<< toAff $ runFn5 xtrimJ cacheConn key (show strategy) approx len
