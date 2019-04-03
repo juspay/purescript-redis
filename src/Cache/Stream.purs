@@ -42,7 +42,7 @@ newEntryId ms seq = EntryID <$> filter64bit ms <*> filter64bit seq
 
 instance showEntryID :: Show EntryID where
   show :: EntryID -> String
-  show (EntryID ms seq) = show ms <> "-" <> show seq
+  show (EntryID ms seq) = toString ms <> "-" <> toString seq
   show (AutoID        ) = "*"
 
 fromString :: String -> Maybe EntryID
