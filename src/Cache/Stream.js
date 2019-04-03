@@ -37,6 +37,20 @@ exports["xlenJ"] = function(client, key) {
   return client.xlenAsync(key);
 }
 
+// Assumes no count if count == 0
+exports["xreadJ"] = function(client, count, streams, ids) {
+  var allArgs = [];
+
+  if (count > 0) {
+    allArgs.push("COUNT").push(count);
+  }
+
+  allArgs.push("STREAMS");
+  allArgs = allArgs.concat(streams).concat(ids);
+
+  return client.xreadAsync(allArgs);
+}
+
 exports["xtrimJ"] = function(client, key, strategy, approx, len) {
   if (approx) {
     return client.xtrimAsync(key, strategy, "~", len);
