@@ -38,6 +38,15 @@ exports["xlenJ"] = function(client, key) {
 }
 
 // Assumes no count if count == 0
+exports["xrangeJ"] = function(client, key, start, end, count) {
+  if (count > 0) {
+    return client.xrangeAsync(key, start, end, "COUNT", count);
+  } else {
+    return client.xrangeAsync(key, start, end);
+  }
+}
+
+// Assumes no count if count == 0
 exports["xreadJ"] = function(client, count, streams, ids) {
   var allArgs = [];
 

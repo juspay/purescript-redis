@@ -1,12 +1,13 @@
 module Cache.Stream
   ( Entry(..)
-  , EntryID(AutoID, AfterLastID)
+  , EntryID(AutoID, AfterLastID, MaxID, MinID)
   , Item
   , TrimStrategy(..)
   , firstEntryId
   , newEntryId
   , xadd
   , xlen
+  , xrange
   , xread
   , xtrim
   ) where
@@ -51,6 +52,8 @@ filter64bit n = if n >= bigZero && n < uint64Max then Just n else Nothing
 data EntryID = EntryID BigInt BigInt
              | AutoID
              | AfterLastID
+             | MinID
+             | MaxID
 
 data Entry = Entry EntryID (Array Item)
 
@@ -65,6 +68,8 @@ instance showEntryID :: Show EntryID where
   show (EntryID ms seq) = toString ms <> "-" <> toString seq
   show (AutoID        ) = "*"
   show (AfterLastID   ) = "$"
+  show (MinID         ) = "-"
+  show (MaxID         ) = "+"
 
 fromString :: String -> Maybe EntryID
 fromString s =
@@ -76,14 +81,12 @@ fromString s =
       then EntryID <$> ms <*> seq
       else Nothing
 
--- unsafePartial here as we expect redis to never give us an invalid entry ID
-forceFromString :: String -> EntryID
-forceFromString s = unsafePartial $ fromJust $ fromString s
-
 foreign import xaddJ :: Fn4 CacheConn String String (Array String) (Promise String)
 
 xadd :: forall e. CacheConn -> String -> EntryID -> Array Item -> CacheAff e (Either Error EntryID)
-xadd cacheConn key AfterLastID args = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
+xadd _ _ AfterLastID _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
+xadd _ _ MinID       _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
+xadd _ _ MaxID       _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
 xadd cacheConn key entryId args = do
   res <- attempt <<< toAff $ runFn4 xaddJ cacheConn key (show entryId) $ foldMap tupleToArray args
   pure $ forceFromString  <$> res
@@ -97,6 +100,16 @@ foreign import xlenJ :: Fn2 CacheConn String (Promise Int)
 -- empty stream
 xlen :: forall e. CacheConn -> String -> CacheAff e (Either Error Int)
 xlen cacheConn key = attempt <<< toAff $ runFn2 xlenJ cacheConn key
+
+-- The return value is of the form:
+-- [ [[entry_id, [key1, val1, key2, val2]], [entry_id, [...]]] ]
+foreign import xrangeJ :: Fn5 CacheConn String String String Int (Promise (Array Foreign))
+
+xrange :: forall e. CacheConn -> String -> EntryID -> EntryID -> Maybe Int -> CacheAff e (Either Error (Array Entry))
+xrange cacheConn stream start end mCount = do
+  let count = fromMaybe 0 mCount
+  res <- attempt <<< toAff $ runFn5 xrangeJ cacheConn stream (show start) (show end) count
+  pure $ res >>= readEntries
 
 -- The return value is of the form:
 -- [ [stream_name, [[entry_id, [key1, val1, key2, val2]], [entry_id, [...]]]], [stream_name, [...]] ]
@@ -113,43 +126,6 @@ xread cacheConn mCount streamIds = do
      response      <- res
      streamEntries <- sequence $ readStreamEntries <$> response
      Right $ fromFoldable streamEntries
-  where
-        parseWithError :: forall e' a. Show e' => Except e' a -> Either Error a
-        parseWithError = lmap (error <<< show) <<< runExcept
-
-        parseArrayItem :: forall a. String -> Array Foreign -> Int -> (Foreign -> F a) -> Either Error a
-        parseArrayItem name arr ix parse =
-          fromMaybe
-            (Left $ error $ "Could not read " <> name)
-            (parseWithError <<< parse <$> arr !! ix)
-
-        readStreamEntries :: Foreign -> Either Error (Tuple String (Array Entry))
-        readStreamEntries v = do
-           vals     <- parseWithError $ readArray v
-           stream   <- parseArrayItem "stream key" vals 0 readString
-           fEntries <- parseArrayItem "stream entries" vals 1 readArray
-           entries  <- sequence $ readEntry <$> fEntries
-           Right $ Tuple stream entries
-
-        readEntry :: Foreign -> Either Error Entry
-        readEntry v = do
-           vals   <- parseWithError $ readArray v
-           entry  <- parseArrayItem "entry ID" vals 0 (map forceFromString <<< readString)
-           fItems <- parseArrayItem "entry items" vals 1 readArray
-           items  <- readItems fItems
-           Right $ Entry entry items
-
-        readItems :: Array Foreign -> Either Error (Array Item)
-        readItems v =
-          if odd $ length v
-            then
-              Left $ error "unexpected number of keys + values"
-            else do
-              array <- sequence $ parseWithError <<< readString <$> v
-              let indexed = zip (range 1 $ length v) array
-                  keys    = snd <$> filter (fst >>> odd) indexed
-                  values  = snd <$> filter (fst >>> even) indexed
-              Right $ zip keys values
 
 data TrimStrategy = Maxlen
 
@@ -160,3 +136,49 @@ foreign import xtrimJ :: Fn5 CacheConn String String Boolean Int (Promise Int)
 
 xtrim :: forall e. CacheConn -> String -> TrimStrategy -> Boolean -> Int -> CacheAff e (Either Error Int)
 xtrim cacheConn key strategy approx len = attempt <<< toAff $ runFn5 xtrimJ cacheConn key (show strategy) approx len
+
+-- Utility functions for parsing
+
+-- unsafePartial here as we expect redis to never give us an invalid entry ID
+forceFromString :: String -> EntryID
+forceFromString s = unsafePartial $ fromJust $ fromString s
+
+parseWithError :: forall e' a. Show e' => Except e' a -> Either Error a
+parseWithError = lmap (error <<< show) <<< runExcept
+
+parseArrayItem :: forall a. String -> Array Foreign -> Int -> (Foreign -> F a) -> Either Error a
+parseArrayItem name arr ix parse =
+  fromMaybe
+    (Left $ error $ "Could not read " <> name)
+    (parseWithError <<< parse <$> arr !! ix)
+
+readStreamEntries :: Foreign -> Either Error (Tuple String (Array Entry))
+readStreamEntries v = do
+   vals     <- parseWithError $ readArray v
+   stream   <- parseArrayItem "stream key" vals 0 readString
+   fEntries <- parseArrayItem "stream entries" vals 1 readArray
+   entries  <- readEntries fEntries
+   Right $ Tuple stream entries
+
+readEntries :: Array Foreign -> Either Error (Array Entry)
+readEntries e = sequence $ readEntry <$> e
+
+readEntry :: Foreign -> Either Error Entry
+readEntry v = do
+   vals   <- parseWithError $ readArray v
+   entry  <- parseArrayItem "entry ID" vals 0 (map forceFromString <<< readString)
+   fItems <- parseArrayItem "entry items" vals 1 readArray
+   items  <- readItems fItems
+   Right $ Entry entry items
+
+readItems :: Array Foreign -> Either Error (Array Item)
+readItems v =
+  if odd $ length v
+    then
+      Left $ error "unexpected number of keys + values"
+    else do
+      array <- sequence $ parseWithError <<< readString <$> v
+      let indexed = zip (range 1 $ length v) array
+          keys    = snd <$> filter (fst >>> odd) indexed
+          values  = snd <$> filter (fst >>> even) indexed
+      Right $ zip keys values

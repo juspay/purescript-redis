@@ -1,7 +1,7 @@
 module Test.Stream where
 
 import Cache (CacheConn, delKey)
-import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xlen, xread, xtrim)
+import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xlen, xrange, xread, xtrim)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Class (liftEff)
 import Data.Array (length, singleton, (!!))
@@ -47,15 +47,15 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
              Right v  -> do
                 size v `shouldEqual` 1
                 case lookup testQueue v of
-                     Just entries -> do
-                        let (Entry _ items)   = unsafePartial $ fromJust $ entries !! 0
-                        let (Tuple key value) = unsafePartial $ fromJust $ items !! 0
-                        length entries `shouldEqual` 1
-                        length items   `shouldEqual` 1
-                        key            `shouldEqual` "test"
-                        value          `shouldEqual` "123"
+                     Just entries -> checkEntries entries
                      Nothing -> fail "Could not find queue in result"
              Left err -> fail $ "Read failed: " <> show err
+
+     --it "can read a range of values" do
+        val <- xrange cacheConn testQueue MinID MaxID Nothing
+        case val of
+             Right entries -> checkEntries entries
+             Left err      -> fail $ "Range failed: " <> show err
 
      --it "returns 1 on first (forced) trim" do
         len <- xtrim cacheConn testQueue Maxlen false 0
@@ -68,3 +68,11 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
         case len of
              Right v  -> if v == 0 then pure unit else fail $ "Bad value: " <> show v
              Left err -> fail $ "Bad value: " <> show err
+     where
+           checkEntries entries = do
+             let (Entry _ items)   = unsafePartial $ fromJust $ entries !! 0
+                 (Tuple key value) = unsafePartial $ fromJust $ items !! 0
+             length entries `shouldEqual` 1
+             length items   `shouldEqual` 1
+             key            `shouldEqual` "test"
+             value          `shouldEqual` "123"
