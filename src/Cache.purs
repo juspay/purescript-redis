@@ -20,8 +20,7 @@
 -}
 
 module Cache
- ( module Cache.Stream
- , module Cache.Types
+ ( module Cache.Types
  , db
  , delKey
  , delKeyList
@@ -73,7 +72,6 @@ module Cache
  , zipkinURL
  ) where
 
-import Cache.Stream (EntryID(..), TrimStrategy(..), newEntryId, xadd, xlen, xtrim)
 import Cache.Types (CACHE, CacheAff, CacheConn, CacheConnOpts, CacheEff, Multi, MultiToMulti)
 
 import Control.Monad.Aff (Aff, attempt)
