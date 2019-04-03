@@ -1,6 +1,7 @@
 module Test.Stream where
 
-import Cache (CacheConn, EntryID(..), TrimStrategy(..), delKey, xadd, xlen, xtrim)
+import Cache (CacheConn, delKey)
+import Cache.Stream (EntryID(..), TrimStrategy(..), xadd, xlen, xtrim)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Class (liftEff)
 import Data.Array (singleton)
