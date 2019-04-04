@@ -86,3 +86,7 @@ exports["xtrimJ"] = function(client, key, strategy, approx, len) {
 exports["xgroupCreateJ"] = function(client, key, groupName, fromId) {
   return client.xgroupAsync("CREATE", key, groupName, fromId);
 }
+
+exports["xgroupDestroyJ"] = function(client, key, groupName) {
+  return client.xgroupAsync("DESTROY", key, groupName);
+}

@@ -8,6 +8,7 @@ module Cache.Stream
   , xadd
   , xdel
   , xgroupCreate
+  , xgroupDestroy
   , xlen
   , xrange
   , xread
@@ -164,6 +165,11 @@ xgroupCreate _ _ _ AutoID = pure $ Left $ error "XCREATE must take a concrete ID
 xgroupCreate _ _ _ MinID  = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
 xgroupCreate _ _ _ MaxID  = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
 xgroupCreate cacheConn key groupName entryId = attempt <<< toAff $ runFn4 xgroupCreateJ cacheConn key groupName (show entryId)
+
+foreign import xgroupDestroyJ :: Fn3 CacheConn String String (Promise Unit)
+
+xgroupDestroy :: forall e. CacheConn -> String -> String -> CacheAff e (Either Error Unit)
+xgroupDestroy cacheConn key groupName = attempt <<< toAff $ runFn3 xgroupDestroyJ cacheConn key groupName
 
 -- Utility functions for parsing
 
