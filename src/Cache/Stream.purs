@@ -8,6 +8,7 @@ module Cache.Stream
   , xadd
   , xdel
   , xgroupCreate
+  , xgroupDelConsumer
   , xgroupDestroy
   , xlen
   , xrange
@@ -170,6 +171,11 @@ foreign import xgroupDestroyJ :: Fn3 CacheConn String String (Promise Unit)
 
 xgroupDestroy :: forall e. CacheConn -> String -> String -> CacheAff e (Either Error Unit)
 xgroupDestroy cacheConn key groupName = attempt <<< toAff $ runFn3 xgroupDestroyJ cacheConn key groupName
+
+foreign import xgroupDelConsumerJ :: Fn4 CacheConn String String String (Promise Unit)
+
+xgroupDelConsumer :: forall e. CacheConn -> String -> String -> String -> CacheAff e (Either Error Unit)
+xgroupDelConsumer cacheConn key groupName consumerName = attempt <<< toAff $ runFn4 xgroupDelConsumerJ cacheConn key groupName consumerName
 
 -- Utility functions for parsing
 
