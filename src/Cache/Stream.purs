@@ -1,6 +1,6 @@
 module Cache.Stream
   ( Entry(..)
-  , EntryID(AutoID, AfterLastID, MaxID, MinID)
+  , EntryID(AutoID, AfterLastID, MaxID, MinID, NewID)
   , Item
   , TrimStrategy(..)
   , firstEntryId
@@ -14,6 +14,7 @@ module Cache.Stream
   , xlen
   , xrange
   , xread
+  , xreadGroup
   , xrevrange
   , xtrim
   ) where
@@ -30,11 +31,11 @@ import Data.BigInt (BigInt, toString)
 import Data.BigInt (fromInt, fromString, shl) as BigInt
 import Data.Either (Either(..))
 import Data.Foldable (foldMap)
-import Data.Foreign (F, Foreign, readArray, readString)
-import Data.Function.Uncurried (Fn2, Fn3, Fn4, Fn5, runFn2, runFn3, runFn4, runFn5)
+import Data.Foreign (F, Foreign, isNull, readArray, readString)
+import Data.Function.Uncurried (Fn2, Fn3, Fn4, Fn5, Fn7, runFn2, runFn3, runFn4, runFn5, runFn7)
 import Data.Int (even, odd)
 import Data.Maybe (Maybe(..), fromJust, fromMaybe)
-import Data.StrMap (StrMap, fromFoldable)
+import Data.StrMap (StrMap, empty, fromFoldable)
 import Data.String (Pattern(..))
 import Data.String.CodePoints (split)
 import Data.Traversable (sequence)
@@ -60,6 +61,7 @@ data EntryID = EntryID BigInt BigInt
              | AfterLastID
              | MinID
              | MaxID
+             | NewID
 
 data Entry = Entry EntryID (Array Item)
 
@@ -76,6 +78,7 @@ instance showEntryID :: Show EntryID where
   show (AfterLastID   ) = "$"
   show (MinID         ) = "-"
   show (MaxID         ) = "+"
+  show (NewID         ) = ">"
 
 fromString :: String -> Maybe EntryID
 fromString s =
@@ -93,6 +96,7 @@ xadd :: forall e. CacheConn -> String -> EntryID -> Array Item -> CacheAff e (Ei
 xadd _ _ AfterLastID _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
 xadd _ _ MinID       _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
 xadd _ _ MaxID       _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
+xadd _ _ NewID       _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
 xadd cacheConn key entryId args = do
   res <- attempt <<< toAff $ runFn4 xaddJ cacheConn key (show entryId) $ foldMap tupleToArray args
   pure $ forceFromString  <$> res
@@ -170,6 +174,7 @@ xgroupCreate :: forall e. CacheConn -> String -> String -> EntryID -> CacheAff e
 xgroupCreate _ _ _ AutoID = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
 xgroupCreate _ _ _ MinID  = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
 xgroupCreate _ _ _ MaxID  = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
+xgroupCreate _ _ _ NewID  = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
 xgroupCreate cacheConn key groupName entryId = attempt <<< toAff $ runFn4 xgroupCreateJ cacheConn key groupName (show entryId)
 
 foreign import xgroupDestroyJ :: Fn3 CacheConn String String (Promise Unit)
@@ -188,7 +193,26 @@ xgroupSetId :: forall e. CacheConn -> String -> String -> EntryID -> CacheAff e 
 xgroupSetId _ _ _ AutoID = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
 xgroupSetId _ _ _ MinID  = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
 xgroupSetId _ _ _ MaxID  = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
+xgroupSetId _ _ _ NewID  = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
 xgroupSetId cacheConn key groupName entryId = attempt <<< toAff $ runFn4 xgroupSetIdJ cacheConn key groupName (show entryId)
+
+foreign import xreadGroupJ :: Fn7 CacheConn String String Int Boolean (Array String) (Array String) (Promise Foreign)
+
+xreadGroup :: forall e. CacheConn -> String -> String -> Maybe Int -> Boolean -> Array (Tuple String EntryID) -> CacheAff e (Either Error (StrMap (Array Entry)))
+xreadGroup cacheConn groupName consumerName mCount noAck streamIds = do
+  let count   = fromMaybe 0 mCount
+      streams = fst <$> streamIds
+      ids     = show <<< snd <$> streamIds
+  res <- attempt <<< toAff $ runFn7 xreadGroupJ cacheConn groupName consumerName count noAck streams ids
+  pure $ do
+     -- Either monad
+     response <- res
+     if isNull response
+       then Right empty
+       else do
+          arrStreams    <- parseWithError $ readArray response
+          streamEntries <- sequence $ readStreamEntries <$> arrStreams
+          Right $ fromFoldable streamEntries
 
 -- Utility functions for parsing
 

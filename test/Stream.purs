@@ -1,7 +1,7 @@
 module Test.Stream where
 
 import Cache (CacheConn, delKey)
-import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xrevrange, xtrim)
+import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Class (liftEff)
 import Data.Array (length, singleton, (!!))
@@ -106,6 +106,23 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
         case res of
              Right _ -> fail $ "Group create should not have succeeded on duplicate"
              Left _  -> pure unit
+
+     --it "won't find any entries on reading from the group immediately" do
+        val <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testQueue NewID]
+        case val of
+             Right v  -> size v `shouldEqual` 0
+             Left err -> fail $ "Read from group failed: " <> show err
+
+     --it "can read from a group" do
+        _   <- xadd cacheConn testQueue AutoID $ singleton $ "test" /\ "123"
+        val <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testQueue NewID]
+        case val of
+             Right v  -> do
+                size v `shouldEqual` 1
+                case lookup testQueue v of
+                     Just entries -> checkEntries entries
+                     Nothing -> fail "Could not find queue in result"
+             Left err -> fail $ "Read from group failed: " <> show err
 
      --it "can delete a consumer in a group" do
         res <- xgroupDelConsumer cacheConn testQueue testGroup testConsumer
