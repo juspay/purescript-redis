@@ -10,6 +10,7 @@ module Cache.Stream
   , xgroupCreate
   , xgroupDelConsumer
   , xgroupDestroy
+  , xgroupSetId
   , xlen
   , xrange
   , xread
@@ -176,6 +177,14 @@ foreign import xgroupDelConsumerJ :: Fn4 CacheConn String String String (Promise
 
 xgroupDelConsumer :: forall e. CacheConn -> String -> String -> String -> CacheAff e (Either Error Unit)
 xgroupDelConsumer cacheConn key groupName consumerName = attempt <<< toAff $ runFn4 xgroupDelConsumerJ cacheConn key groupName consumerName
+
+foreign import xgroupSetIdJ :: Fn4 CacheConn String String String (Promise Unit)
+
+xgroupSetId :: forall e. CacheConn -> String -> String -> EntryID -> CacheAff e (Either Error Unit)
+xgroupSetId _ _ _ AutoID = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
+xgroupSetId _ _ _ MinID  = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
+xgroupSetId _ _ _ MaxID  = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
+xgroupSetId cacheConn key groupName entryId = attempt <<< toAff $ runFn4 xgroupSetIdJ cacheConn key groupName (show entryId)
 
 -- Utility functions for parsing
 
