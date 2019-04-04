@@ -142,6 +142,10 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
              Right _  -> pure unit
              Left err -> fail $ "Group destroy failed: " <> show err
 
+     -- Clean up
+        _ <- delKey cacheConn testQueue
+        pure unit
+
      where
            checkEntries entries = do
              let (Entry _ items)   = unsafePartial $ fromJust $ entries !! 0
