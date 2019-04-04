@@ -6,6 +6,7 @@ module Cache.Stream
   , firstEntryId
   , newEntryId
   , xadd
+  , xdel
   , xlen
   , xrange
   , xread
@@ -26,7 +27,7 @@ import Data.BigInt (fromInt, fromString, shl) as BigInt
 import Data.Either (Either(..))
 import Data.Foldable (foldMap)
 import Data.Foreign (F, Foreign, readArray, readString)
-import Data.Function.Uncurried (Fn2, Fn4, Fn5, runFn2, runFn4, runFn5)
+import Data.Function.Uncurried (Fn2, Fn3, Fn4, Fn5, runFn2, runFn3, runFn4, runFn5)
 import Data.Int (even, odd)
 import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Data.StrMap (StrMap, fromFoldable)
@@ -93,6 +94,11 @@ xadd cacheConn key entryId args = do
   pure $ forceFromString  <$> res
   where
         tupleToArray (Tuple a b) = a : singleton b
+
+foreign import xdelJ :: Fn3 CacheConn String String (Promise Int)
+
+xdel :: forall e. CacheConn -> String -> EntryID -> CacheAff e (Either Error Int)
+xdel cacheConn key entryId = attempt <<< toAff $ runFn3 xdelJ cacheConn key (show entryId)
 
 -- FIXME: this and all Ints should actually be 64-bit (instead of the current 32-bit)
 foreign import xlenJ :: Fn2 CacheConn String (Promise Int)
