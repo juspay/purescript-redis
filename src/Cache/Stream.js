@@ -80,3 +80,9 @@ exports["xtrimJ"] = function(client, key, strategy, approx, len) {
     return client.xtrimAsync(key, strategy, len);
   }
 }
+
+// Consumer group API
+
+exports["xgroupCreateJ"] = function(client, key, groupName, fromId) {
+  return client.xgroupAsync("CREATE", key, groupName, fromId);
+}

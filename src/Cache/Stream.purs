@@ -7,6 +7,7 @@ module Cache.Stream
   , newEntryId
   , xadd
   , xdel
+  , xgroupCreate
   , xlen
   , xrange
   , xread
@@ -36,7 +37,7 @@ import Data.String.CodePoints (split)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), fst, snd)
 import Partial.Unsafe (unsafePartial)
-import Prelude (class Show, bind, map, pure, show, ($), (&&), (<), (<$>), (<*>), (<<<), (<>), (==), (>=), (>>>))
+import Prelude (class Show, Unit, bind, map, pure, show, ($), (&&), (<), (<$>), (<*>), (<<<), (<>), (==), (>=), (>>>))
 
 -- Streams API
 
@@ -153,6 +154,16 @@ foreign import xtrimJ :: Fn5 CacheConn String String Boolean Int (Promise Int)
 
 xtrim :: forall e. CacheConn -> String -> TrimStrategy -> Boolean -> Int -> CacheAff e (Either Error Int)
 xtrim cacheConn key strategy approx len = attempt <<< toAff $ runFn5 xtrimJ cacheConn key (show strategy) approx len
+
+-- Consumer group API
+
+foreign import xgroupCreateJ :: Fn4 CacheConn String String String (Promise Unit)
+
+xgroupCreate :: forall e. CacheConn -> String -> String -> EntryID -> CacheAff e (Either Error Unit)
+xgroupCreate _ _ _ AutoID = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
+xgroupCreate _ _ _ MinID  = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
+xgroupCreate _ _ _ MaxID  = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
+xgroupCreate cacheConn key groupName entryId = attempt <<< toAff $ runFn4 xgroupCreateJ cacheConn key groupName (show entryId)
 
 -- Utility functions for parsing
 
