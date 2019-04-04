@@ -121,3 +121,15 @@ exports["xackJ"] = function(client, key, groupName, ids) {
   var allArgs = [key, groupName].concat(ids);
   return client.xackAsync(allArgs);
 }
+
+// Ignoring the additional optional arguments except FORCE as they do not seem
+// immediately useful
+exports["xclaimJ"] = function(client, key, groupName, consumerName, minIdleTime, ids, force) {
+  var allArgs = [key, groupName, consumerName, minIdleTime].concat(ids);
+
+  if (force) {
+    allArgs.push("FORCE");
+  }
+
+  return client.xclaimAsync(allArgs);
+}

@@ -7,6 +7,7 @@ module Cache.Stream
   , newEntryId
   , xack
   , xadd
+  , xclaim
   , xdel
   , xgroupCreate
   , xgroupDelConsumer
@@ -219,6 +220,13 @@ foreign import xackJ :: Fn4 CacheConn String String (Array String) (Promise Int)
 
 xack :: forall e. CacheConn -> String -> String -> Array EntryID -> CacheAff e (Either Error Int)
 xack cacheConn key group entryIds = attempt <<< toAff $ runFn4 xackJ cacheConn key group (show <$> entryIds)
+
+foreign import xclaimJ :: Fn7 CacheConn String String String Int (Array String) Boolean (Promise (Array Foreign))
+
+xclaim :: forall e. CacheConn -> String -> String -> String -> Int -> Array EntryID -> Boolean -> CacheAff e (Either Error (Array Entry))
+xclaim cacheConn key groupName consumerName idleTimeMs entryIds force = do
+  res <- attempt <<< toAff $ runFn7 xclaimJ cacheConn key groupName consumerName idleTimeMs (show <$> entryIds) force
+  pure $ res >>= readEntries
 
 -- Utility functions for parsing
 

@@ -1,7 +1,7 @@
 module Test.Stream where
 
 import Cache (CacheConn, delKey)
-import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xack, xadd, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
+import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Class (liftEff)
 import Data.Array (index, length, singleton, (!!))
@@ -142,6 +142,20 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
         res <- xack cacheConn testStream testGroup $ singleton id
         case res of
              Right _  -> pure unit
+             Left err -> fail $ "Ack failed: " <> show err
+
+     --it "won't find an entry when all entries are acked"
+        val <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testStream NewID]
+        case val of
+             Right v  -> size v `shouldEqual` 0
+             Left err -> fail $ "Read from group failed: " <> show err
+
+     --it "can claim a pending entry" do
+        id  <- xadd cacheConn testStream AutoID $ singleton $ "test" /\ "123"
+        _   <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testStream NewID]
+        res <- xclaim cacheConn testStream testGroup "test-consumer-2" 0 [unsafePartial $ fromRight $ id] false
+        case res of
+             Right v  -> checkEntries v
              Left err -> fail $ "Ack failed: " <> show err
 
      --it "can delete a consumer in a group" do
