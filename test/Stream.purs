@@ -1,17 +1,17 @@
 module Test.Stream where
 
 import Cache (CacheConn, delKey)
-import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
+import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xack, xadd, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Class (liftEff)
-import Data.Array (length, singleton, (!!))
+import Data.Array (index, length, singleton, (!!))
 import Data.Either (Either(..), fromRight)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.StrMap (lookup, size)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Partial.Unsafe (unsafePartial)
-import Prelude (Unit, bind, discard, pure, show, unit, ($), (<>), (==))
+import Prelude (Unit, bind, discard, flip, pure, show, unit, ($), (<>), (==))
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
@@ -123,6 +123,14 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
                      Just entries -> checkEntries entries
                      Nothing -> fail "Could not find stream in result"
              Left err -> fail $ "Read from group failed: " <> show err
+
+     --it "can ack an entry" do
+        -- The previous test made sure this value exists
+        let (Entry id _) = unsafePartial $ fromJust $ flip index 0 $ fromJust $ lookup testStream $ fromRight val
+        res <- xack cacheConn testStream testGroup $ singleton id
+        case res of
+             Right _  -> pure unit
+             Left err -> fail $ "Ack failed: " <> show err
 
      --it "can delete a consumer in a group" do
         res <- xgroupDelConsumer cacheConn testStream testGroup testConsumer
