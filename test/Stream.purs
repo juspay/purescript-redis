@@ -17,8 +17,8 @@ import Test.Spec.Assertions (fail, shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (run)
 
-testQueue :: String
-testQueue = "test-queue"
+testStream :: String
+testStream = "test-stream"
 
 testGroup :: String
 testGroup = "test-group"
@@ -33,117 +33,117 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
      -- force sequential running of tests.
      it "works" do
 
-     --it "returns 0 on non-existent queue" do
-        _   <- delKey cacheConn testQueue
-        len <- xlen cacheConn testQueue
+     --it "returns 0 on non-existent stream" do
+        _   <- delKey cacheConn testStream
+        len <- xlen cacheConn testStream
         case len of
              Right 0  -> pure unit
              Right v  -> fail $ "Bad value: " <> show v
              Left err -> fail $ "Bad value: " <> show err
 
      --it "can add a key/value to a stream" do
-        id <- xadd cacheConn testQueue AutoID $ singleton $ "test" /\ "123"
+        id <- xadd cacheConn testStream AutoID $ singleton $ "test" /\ "123"
         case id of
              Right v  -> pure unit
              Left err -> fail $ "Add failed: " <> show err
 
      --it "can delete a key/value" do
-        n <- xdel cacheConn testQueue $ unsafePartial $ fromRight id
+        n <- xdel cacheConn testStream $ unsafePartial $ fromRight id
         case n of
              Right 1  -> pure unit
              Right v  -> fail $ "Deleted more than 1 entry: " <> (show v)
              Left err -> fail $ "Delete failed: " <> show err
 
-     --it "can read from an empty queue"
-        val <- xread cacheConn Nothing [Tuple testQueue firstEntryId]
+     --it "can read from an empty stream"
+        val <- xread cacheConn Nothing [Tuple testStream firstEntryId]
         case val of
              Right v  -> size v `shouldEqual` 0
              Left err -> fail $ "Read failed: " <> show err
 
      --it "can read the values just added" do
-        _ <- xadd cacheConn testQueue AutoID $ singleton $ "test" /\ "123"
-        val <- xread cacheConn Nothing [Tuple testQueue firstEntryId]
+        _ <- xadd cacheConn testStream AutoID $ singleton $ "test" /\ "123"
+        val <- xread cacheConn Nothing [Tuple testStream firstEntryId]
         case val of
              Right v  -> do
                 size v `shouldEqual` 1
-                case lookup testQueue v of
+                case lookup testStream v of
                      Just entries -> checkEntries entries
-                     Nothing -> fail "Could not find queue in result"
+                     Nothing -> fail "Could not find stream in result"
              Left err -> fail $ "Read failed: " <> show err
 
      --it "can read a range of values" do
-        val <- xrange cacheConn testQueue MinID MaxID Nothing
+        val <- xrange cacheConn testStream MinID MaxID Nothing
         case val of
              Right entries -> checkEntries entries
              Left err      -> fail $ "Range failed: " <> show err
 
      --it "can read a range of values in reverse" do
-        val <- xrevrange cacheConn testQueue MinID MaxID Nothing
+        val <- xrevrange cacheConn testStream MinID MaxID Nothing
         case val of
              Right entries -> checkEntries entries
              Left err      -> fail $ "Range failed: " <> show err
 
      --it "returns 1 on first (forced) trim" do
-        len <- xtrim cacheConn testQueue Maxlen false 0
+        len <- xtrim cacheConn testStream Maxlen false 0
         case len of
              Right v  -> if v == 1 then pure unit else fail $ "Bad value: " <> show v
              Left err -> fail $ "Bad value: " <> show err
 
      --it "returns 0 on second (approximate) trim" do
-        len <- xtrim cacheConn testQueue Maxlen true 0
+        len <- xtrim cacheConn testStream Maxlen true 0
         case len of
              Right v  -> if v == 0 then pure unit else fail $ "Bad value: " <> show v
              Left err -> fail $ "Bad value: " <> show err
 
      --it "can create a consumer group" do
-        res <- xgroupCreate cacheConn testQueue testGroup AfterLastID
+        res <- xgroupCreate cacheConn testStream testGroup AfterLastID
         case res of
              Right _  -> pure unit
              Left err -> fail $ "Group create failed: " <> show err
 
      --it "can create a consumer group only once" do
-        res <- xgroupCreate cacheConn testQueue testGroup AfterLastID
+        res <- xgroupCreate cacheConn testStream testGroup AfterLastID
         case res of
              Right _ -> fail $ "Group create should not have succeeded on duplicate"
              Left _  -> pure unit
 
      --it "won't find any entries on reading from the group immediately" do
-        val <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testQueue NewID]
+        val <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testStream NewID]
         case val of
              Right v  -> size v `shouldEqual` 0
              Left err -> fail $ "Read from group failed: " <> show err
 
      --it "can read from a group" do
-        _   <- xadd cacheConn testQueue AutoID $ singleton $ "test" /\ "123"
-        val <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testQueue NewID]
+        _   <- xadd cacheConn testStream AutoID $ singleton $ "test" /\ "123"
+        val <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testStream NewID]
         case val of
              Right v  -> do
                 size v `shouldEqual` 1
-                case lookup testQueue v of
+                case lookup testStream v of
                      Just entries -> checkEntries entries
-                     Nothing -> fail "Could not find queue in result"
+                     Nothing -> fail "Could not find stream in result"
              Left err -> fail $ "Read from group failed: " <> show err
 
      --it "can delete a consumer in a group" do
-        res <- xgroupDelConsumer cacheConn testQueue testGroup testConsumer
+        res <- xgroupDelConsumer cacheConn testStream testGroup testConsumer
         case res of
              Right _  -> pure unit
              Left err -> fail $ "Group destroy failed: " <> show err
 
      --it "can set an ID on a group" do
-        res <- xgroupSetId cacheConn testQueue testGroup AfterLastID
+        res <- xgroupSetId cacheConn testStream testGroup AfterLastID
         case res of
              Right _  -> pure unit
              Left err -> fail $ "Group set ID failed: " <> show err
 
      --it "can destroy a consumer group" do
-        res <- xgroupDestroy cacheConn testQueue testGroup
+        res <- xgroupDestroy cacheConn testStream testGroup
         case res of
              Right _  -> pure unit
              Left err -> fail $ "Group destroy failed: " <> show err
 
      -- Clean up
-        _ <- delKey cacheConn testQueue
+        _ <- delKey cacheConn testStream
         pure unit
 
      where
