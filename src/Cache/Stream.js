@@ -116,3 +116,8 @@ exports["xreadGroupJ"] = function(client, groupName, consumerName, count, noack,
 
   return client.xreadgroupAsync(allArgs);
 }
+
+exports["xackJ"] = function(client, key, groupName, ids) {
+  var allArgs = [key, groupName].concat(ids);
+  return client.xackAsync(allArgs);
+}

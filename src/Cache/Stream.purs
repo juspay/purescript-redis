@@ -5,6 +5,7 @@ module Cache.Stream
   , TrimStrategy(..)
   , firstEntryId
   , newEntryId
+  , xack
   , xadd
   , xdel
   , xgroupCreate
@@ -213,6 +214,11 @@ xreadGroup cacheConn groupName consumerName mCount noAck streamIds = do
           arrStreams    <- parseWithError $ readArray response
           streamEntries <- sequence $ readStreamEntries <$> arrStreams
           Right $ fromFoldable streamEntries
+
+foreign import xackJ :: Fn4 CacheConn String String (Array String) (Promise Int)
+
+xack :: forall e. CacheConn -> String -> String -> Array EntryID -> CacheAff e (Either Error Int)
+xack cacheConn key group entryIds = attempt <<< toAff $ runFn4 xackJ cacheConn key group (show <$> entryIds)
 
 -- Utility functions for parsing
 
