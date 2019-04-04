@@ -9,6 +9,7 @@ module Cache.Stream
   , xlen
   , xrange
   , xread
+  , xrevrange
   , xtrim
   ) where
 
@@ -107,6 +108,16 @@ foreign import xrangeJ :: Fn5 CacheConn String String String Int (Promise (Array
 
 xrange :: forall e. CacheConn -> String -> EntryID -> EntryID -> Maybe Int -> CacheAff e (Either Error (Array Entry))
 xrange cacheConn stream start end mCount = do
+  let count = fromMaybe 0 mCount
+  res <- attempt <<< toAff $ runFn5 xrangeJ cacheConn stream (show start) (show end) count
+  pure $ res >>= readEntries
+
+-- The return value is of the form:
+-- [ [[entry_id, [key1, val1, key2, val2]], [entry_id, [...]]] ]
+foreign import xrevrangeJ :: Fn5 CacheConn String String String Int (Promise (Array Foreign))
+
+xrevrange :: forall e. CacheConn -> String -> EntryID -> EntryID -> Maybe Int -> CacheAff e (Either Error (Array Entry))
+xrevrange cacheConn stream start end mCount = do
   let count = fromMaybe 0 mCount
   res <- attempt <<< toAff $ runFn5 xrangeJ cacheConn stream (show start) (show end) count
   pure $ res >>= readEntries
