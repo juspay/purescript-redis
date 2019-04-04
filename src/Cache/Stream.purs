@@ -134,7 +134,7 @@ xrevrange cacheConn stream start end mCount = do
 
 -- The return value is of the form:
 -- [ [stream_name, [[entry_id, [key1, val1, key2, val2]], [entry_id, [...]]]], [stream_name, [...]] ]
-foreign import xreadJ :: Fn4 CacheConn Int (Array String) (Array String) (Promise (Array Foreign))
+foreign import xreadJ :: Fn4 CacheConn Int (Array String) (Array String) (Promise Foreign)
 
 xread :: forall e. CacheConn -> Maybe Int -> Array (Tuple String EntryID) -> CacheAff e (Either Error (StrMap (Array Entry)))
 xread cacheConn mCount streamIds = do
@@ -144,9 +144,13 @@ xread cacheConn mCount streamIds = do
   res <- attempt <<< toAff $ runFn4 xreadJ cacheConn count streams ids
   pure $ do
      -- Either monad
-     response      <- res
-     streamEntries <- sequence $ readStreamEntries <$> response
-     Right $ fromFoldable streamEntries
+     response <- res
+     if isNull response
+       then Right empty
+       else do
+          arrStreams    <- parseWithError $ readArray response
+          streamEntries <- sequence $ readStreamEntries <$> arrStreams
+          Right $ fromFoldable streamEntries
 
 data TrimStrategy = Maxlen
 

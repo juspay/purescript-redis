@@ -53,10 +53,15 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
              Right 1  -> pure unit
              Right v  -> fail $ "Deleted more than 1 entry: " <> (show v)
              Left err -> fail $ "Delete failed: " <> show err
-        -- Now add the value back for later tests
-        _ <- xadd cacheConn testQueue AutoID $ singleton $ "test" /\ "123"
+
+     --it "can read from an empty queue"
+        val <- xread cacheConn Nothing [Tuple testQueue firstEntryId]
+        case val of
+             Right v  -> size v `shouldEqual` 0
+             Left err -> fail $ "Read failed: " <> show err
 
      --it "can read the values just added" do
+        _ <- xadd cacheConn testQueue AutoID $ singleton $ "test" /\ "123"
         val <- xread cacheConn Nothing [Tuple testQueue firstEntryId]
         case val of
              Right v  -> do
