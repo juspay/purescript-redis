@@ -60,6 +60,18 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
              Right v  -> size v `shouldEqual` 0
              Left err -> fail $ "Read failed: " <> show err
 
+     --it "can read a range of values from an empty stream" do
+        val <- xrange cacheConn testStream MinID MaxID Nothing
+        case val of
+             Right v  -> length v `shouldEqual` 0
+             Left err -> fail $ "Range failed: " <> show err
+
+     --it "can read a range of values in reverse from an empty stream" do
+        val <- xrevrange cacheConn testStream MinID MaxID Nothing
+        case val of
+             Right v  -> length v `shouldEqual` 0
+             Left err -> fail $ "Range failed: " <> show err
+
      --it "can read the values just added" do
         _ <- xadd cacheConn testStream AutoID $ singleton $ "test" /\ "123"
         val <- xread cacheConn Nothing [Tuple testStream firstEntryId]
