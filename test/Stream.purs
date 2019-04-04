@@ -1,7 +1,7 @@
 module Test.Stream where
 
 import Cache (CacheConn, delKey)
-import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xlen, xrange, xread, xrevrange, xtrim)
+import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xrevrange, xtrim)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Class (liftEff)
 import Data.Array (length, singleton, (!!))
@@ -107,6 +107,12 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
         case res of
              Right _  -> pure unit
              Left err -> fail $ "Group destroy failed: " <> show err
+
+     --it "can set an ID on a group" do
+        res <- xgroupSetId cacheConn testQueue testGroup AfterLastID
+        case res of
+             Right _  -> pure unit
+             Left err -> fail $ "Group set ID failed: " <> show err
 
      --it "can destroy a consumer group" do
         res <- xgroupDestroy cacheConn testQueue testGroup

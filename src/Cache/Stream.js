@@ -94,3 +94,7 @@ exports["xgroupDestroyJ"] = function(client, key, groupName) {
 exports["xgroupDelConsumerJ"] = function(client, key, groupName, consumerName) {
   return client.xgroupAsync("DELCONSUMER", key, groupName, consumerName);
 }
+
+exports["xgroupSetIdJ"] = function(client, key, groupName, entryId) {
+  return client.xgroupAsync("SETID", key, groupName, entryId);
+}
