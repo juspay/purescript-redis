@@ -1,7 +1,7 @@
 module Test.Stream where
 
 import Cache (CacheConn, delKey)
-import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xdel, xgroupCreate, xgroupDestroy, xlen, xrange, xread, xrevrange, xtrim)
+import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xlen, xrange, xread, xrevrange, xtrim)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Class (liftEff)
 import Data.Array (length, singleton, (!!))
@@ -22,6 +22,9 @@ testQueue = "test-queue"
 
 testGroup :: String
 testGroup = "test-group"
+
+testConsumer :: String
+testConsumer = "test-consumer"
 
 streamTest :: CacheConn -> Aff _ Unit
 streamTest cacheConn = liftEff $ run [consoleReporter] do
@@ -99,11 +102,18 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
              Right _ -> fail $ "Group create should not have succeeded on duplicate"
              Left _  -> pure unit
 
+     --it "can delete a consumer in a group" do
+        res <- xgroupDelConsumer cacheConn testQueue testGroup testConsumer
+        case res of
+             Right _  -> pure unit
+             Left err -> fail $ "Group destroy failed: " <> show err
+
      --it "can destroy a consumer group" do
         res <- xgroupDestroy cacheConn testQueue testGroup
         case res of
              Right _  -> pure unit
              Left err -> fail $ "Group destroy failed: " <> show err
+
      where
            checkEntries entries = do
              let (Entry _ items)   = unsafePartial $ fromJust $ entries !! 0
