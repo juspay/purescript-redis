@@ -30,7 +30,7 @@
 // Not exposing MAXLEN, assuming that will be done with an explicit xtrim
 exports["xaddJ"] = function(client, key, id, args) {
   var allArgs = [key, id].concat(args);
-  return client.xaddAsync.apply(client, allArgs);
+  return client.xaddAsync(allArgs);
 }
 
 exports["xdelJ"] = function(client, key, id) {
