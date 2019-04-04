@@ -98,3 +98,21 @@ exports["xgroupDelConsumerJ"] = function(client, key, groupName, consumerName) {
 exports["xgroupSetIdJ"] = function(client, key, groupName, entryId) {
   return client.xgroupAsync("SETID", key, groupName, entryId);
 }
+
+// Assumes no count if count == 0
+exports["xreadGroupJ"] = function(client, groupName, consumerName, count, noack, streams, ids) {
+  var allArgs = ["GROUP", groupName, consumerName];
+
+  if (count > 0) {
+    allArgs.push("COUNT").push(count);
+  }
+
+  if (noack) {
+    allArgs.push("NOACK");
+  }
+
+  allArgs.push("STREAMS");
+  allArgs = allArgs.concat(streams).concat(ids);
+
+  return client.xreadgroupAsync(allArgs);
+}
