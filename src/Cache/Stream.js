@@ -47,6 +47,15 @@ exports["xrangeJ"] = function(client, key, start, end, count) {
 }
 
 // Assumes no count if count == 0
+exports["xrevrangeJ"] = function(client, key, start, end, count) {
+  if (count > 0) {
+    return client.xrevrangeAsync(key, start, end, "COUNT", count);
+  } else {
+    return client.xrevrangeAsync(key, start, end);
+  }
+}
+
+// Assumes no count if count == 0
 exports["xreadJ"] = function(client, count, streams, ids) {
   var allArgs = [];
 

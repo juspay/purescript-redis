@@ -1,7 +1,7 @@
 module Test.Stream where
 
 import Cache (CacheConn, delKey)
-import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xlen, xrange, xread, xtrim)
+import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xlen, xrange, xread, xrevrange, xtrim)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Class (liftEff)
 import Data.Array (length, singleton, (!!))
@@ -53,6 +53,12 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
 
      --it "can read a range of values" do
         val <- xrange cacheConn testQueue MinID MaxID Nothing
+        case val of
+             Right entries -> checkEntries entries
+             Left err      -> fail $ "Range failed: " <> show err
+
+     --it "can read a range of values in reverse" do
+        val <- xrevrange cacheConn testQueue MinID MaxID Nothing
         case val of
              Right entries -> checkEntries entries
              Left err      -> fail $ "Range failed: " <> show err
