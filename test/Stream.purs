@@ -1,11 +1,11 @@
 module Test.Stream where
 
 import Cache (CacheConn, delKey)
-import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xlen, xrange, xread, xrevrange, xtrim)
+import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xadd, xdel, xlen, xrange, xread, xrevrange, xtrim)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Class (liftEff)
 import Data.Array (length, singleton, (!!))
-import Data.Either (Either(..))
+import Data.Either (Either(..), fromRight)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.StrMap (lookup, size)
 import Data.Tuple (Tuple(..))
@@ -35,11 +35,20 @@ streamTest cacheConn = liftEff $ run [consoleReporter] do
              Right v  -> fail $ "Bad value: " <> show v
              Left err -> fail $ "Bad value: " <> show err
 
-     --it "can add a key/value to a queue" do
+     --it "can add a key/value to a stream" do
         id <- xadd cacheConn testQueue AutoID $ singleton $ "test" /\ "123"
         case id of
              Right v  -> pure unit
              Left err -> fail $ "Add failed: " <> show err
+
+     --it "can delete a key/value" do
+        n <- xdel cacheConn testQueue $ unsafePartial $ fromRight id
+        case n of
+             Right 1  -> pure unit
+             Right v  -> fail $ "Deleted more than 1 entry: " <> (show v)
+             Left err -> fail $ "Delete failed: " <> show err
+        -- Now add the value back for later tests
+        _ <- xadd cacheConn testQueue AutoID $ singleton $ "test" /\ "123"
 
      --it "can read the values just added" do
         val <- xread cacheConn Nothing [Tuple testQueue firstEntryId]

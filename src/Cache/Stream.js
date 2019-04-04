@@ -33,6 +33,10 @@ exports["xaddJ"] = function(client, key, id, args) {
   return client.xaddAsync.apply(client, allArgs);
 }
 
+exports["xdelJ"] = function(client, key, id) {
+  return client.xdelAsync(key, id);
+}
+
 exports["xlenJ"] = function(client, key) {
   return client.xlenAsync(key);
 }
