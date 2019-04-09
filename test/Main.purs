@@ -7,8 +7,9 @@ import Control.Monad.Aff (Aff, launchAff)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
 import Data.Options ((:=))
-import Test.Multi (multiTest)
+import Test.Basic (basicTest)
 import Test.List (listTest)
+import Test.Multi (multiTest)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (run)
 import Test.Stream (streamTest)
@@ -18,6 +19,7 @@ startTest = do
     let cacheOpts = C.host := "127.0.0.1" <> C.port := 6379 <> C.db := 0 <> C.socketKeepAlive := true
     cacheConn <- C.getConn cacheOpts
     liftEff $ run [consoleReporter] do
+       basicTest cacheConn
        listTest cacheConn
        multiTest cacheConn
        streamTest cacheConn
