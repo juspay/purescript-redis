@@ -91,10 +91,8 @@ exports["setJ"] = function(client, key, value, px, options) {
   return client.setAsync(allArgs)
 }
 
-exports["getKeyJ"] = function(client) {
-  return function(key) {
-    return client.getAsync(key);
-  };
+exports["getJ"] = function(client, key) {
+  return client.getAsync(key);
 };
 
 exports["existsJ"] = function(client) {

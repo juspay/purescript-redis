@@ -28,7 +28,7 @@ module Cache
  , expire
  , getConn
  , getHashKey
- , getKey
+ , get
  , host
  , incr
  , lindex
@@ -60,7 +60,7 @@ import Control.Monad.Except (runExcept)
 import Control.Promise (Promise, toAff, toAffE)
 import Data.Either (Either, hush)
 import Data.Foreign (Foreign, readString)
-import Data.Function.Uncurried (Fn5, runFn5)
+import Data.Function.Uncurried (Fn2, Fn5, runFn2, runFn5)
 import Data.Int (round)
 import Data.Maybe (Maybe, maybe)
 import Data.Options (Option, Options, opt, options)
@@ -105,7 +105,7 @@ zipkinServiceName :: Option CacheConnOpts String
 zipkinServiceName = opt "zipkinServiceName"
 
 foreign import setJ :: Fn5 CacheConn String String String String (Promise String)
-foreign import getKeyJ :: CacheConn -> String -> Promise String
+foreign import getJ :: Fn2 CacheConn String (Promise Foreign)
 foreign import existsJ :: CacheConn -> String -> Promise Boolean
 foreign import delKeyJ :: CacheConn -> Array String -> Promise String
 foreign import expireJ :: CacheConn -> String -> String -> Promise String
@@ -131,8 +131,8 @@ set cacheConn key value mExp opts =
   where
         msToString (Milliseconds v) = show $ round v
 
-getKey :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
-getKey cacheConn key = attempt $ toAff $ getKeyJ cacheConn key
+get :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
+get cacheConn key = attempt <<< map readStringMaybe <<< toAff $ runFn2 getJ cacheConn key
 
 exists :: forall e. CacheConn -> String -> CacheAff e  (Either Error Boolean)
 exists cacheConn = attempt <<< toAff <<< existsJ cacheConn
