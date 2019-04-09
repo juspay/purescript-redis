@@ -22,8 +22,7 @@
 module Cache
  ( module Cache.Types
  , db
- , delKey
- , delKeyList
+ , del
  , exists
  , expire
  , getConn
@@ -58,6 +57,7 @@ import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (Error)
 import Control.Monad.Except (runExcept)
 import Control.Promise (Promise, toAff, toAffE)
+import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either, hush)
 import Data.Foreign (Foreign, readString)
 import Data.Function.Uncurried (Fn2, Fn5, runFn2, runFn5)
@@ -107,7 +107,7 @@ zipkinServiceName = opt "zipkinServiceName"
 foreign import setJ :: Fn5 CacheConn String String String String (Promise String)
 foreign import getJ :: Fn2 CacheConn String (Promise Foreign)
 foreign import existsJ :: Fn2 CacheConn String (Promise Int)
-foreign import delKeyJ :: CacheConn -> Array String -> Promise String
+foreign import delJ :: Fn2 CacheConn (Array String) (Promise Int)
 foreign import expireJ :: CacheConn -> String -> String -> Promise String
 foreign import incrJ :: CacheConn -> String -> Promise String
 foreign import setHashJ :: CacheConn -> String -> String -> String -> Promise String
@@ -137,11 +137,8 @@ get cacheConn key = attempt <<< map readStringMaybe <<< toAff $ runFn2 getJ cach
 exists :: forall e. CacheConn -> String -> CacheAff e (Either Error Boolean)
 exists cacheConn = attempt <<< map (\x -> x /= 0) <<< toAff <<< runFn2 existsJ cacheConn
 
-delKey :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
-delKey cacheConn key = attempt $ toAff $ delKeyJ cacheConn [key]
-
-delKeyList :: forall e. CacheConn -> Array String -> CacheAff e  (Either Error String)
-delKeyList cacheConn key = attempt $ toAff $ delKeyJ cacheConn key
+del :: forall e. CacheConn -> NonEmptyArray String -> CacheAff e (Either Error Int)
+del cacheConn keys = attempt <<< toAff $ runFn2 delJ cacheConn (toArray keys)
 
 expire :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error String)
 expire cacheConn key ttl = attempt $ toAff $ expireJ cacheConn key ttl

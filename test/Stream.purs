@@ -1,8 +1,9 @@
 module Test.Stream where
 
-import Cache (CacheConn, delKey)
+import Cache (CacheConn, del)
 import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
 import Data.Array (index, length, singleton, (!!))
+import Data.Array.NonEmpty (singleton) as NEArray
 import Data.Either (Either(..), fromRight)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.StrMap (lookup, size)
@@ -30,7 +31,7 @@ streamTest cacheConn =
      it "works" do
 
      --it "returns 0 on non-existent stream" do
-        _   <- delKey cacheConn testStream
+        _   <- del cacheConn $ NEArray.singleton testStream
         len <- xlen cacheConn testStream
         case len of
              Right 0  -> pure unit
@@ -173,7 +174,7 @@ streamTest cacheConn =
              Left err -> fail $ "Group destroy failed: " <> show err
 
      -- Clean up
-        _ <- delKey cacheConn testStream
+        _ <- del cacheConn $ NEArray.singleton testStream
         pure unit
 
      where

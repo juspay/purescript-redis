@@ -99,10 +99,8 @@ exports["existsJ"] = function(client, key) {
   return client.existsAsync(key);
 };
 
-exports["delKeyJ"] = function(client) {
-  return function(key) {
-    return client.delAsync(key);
-  };
+exports["delJ"] = function(client, key) {
+  return client.delAsync(key);
 };
 
 exports["expireJ"] = function(client) {
