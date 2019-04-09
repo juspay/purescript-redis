@@ -4,8 +4,8 @@ module Test.Queue where
 
 import Prelude
 
-import Cache (CACHE, db, exec, getConn, getHashKey, getHashKeyMulti, getKey, getKeyMulti, getMulti, host, incr, incrMulti, lindex, lpop, port, rpush, setHash, setHashMulti, setKey, setKeyMulti, setMulti, setex, setexKeyMulti, socketKeepAlive) as C
 import Cache (CacheConn)
+import Cache (lindex, lpop, rpush, setex) as C
 import Control.Monad.Aff (Aff, launchAff)
 import Control.Monad.Eff (Eff)
 import Data.Options (options, (:=))
