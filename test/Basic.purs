@@ -1,11 +1,12 @@
 module Test.Basic where
 
-import Cache (CacheConn, SetOptions(..), get, set)
-import Control.Monad.Aff (delay)
+import Cache (CacheConn, SetOptions(..), exists, get, set)
+import Control.Monad.Aff (Aff, delay)
+import Control.Monad.Eff.Exception (Error)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Milliseconds(..))
-import Prelude (Unit, bind, discard, pure, show, unit, ($), (<>), (==))
+import Prelude (class Eq, class Show, Unit, bind, discard, pure, show, unit, ($), (<>), (==))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail)
 
@@ -18,6 +19,9 @@ basicTest cacheConn =
              Right _  -> pure unit
              Left err -> fail $ show err
 
+        v4 <- exists cacheConn "test-key"
+        checkValue v4 true
+
         v1 <- get cacheConn "test-key"
         checkValue v1 (Just "foo")
 
@@ -25,6 +29,9 @@ basicTest cacheConn =
 
         v2 <- get cacheConn "test-key"
         checkValue v2 Nothing
+
+        v3 <- exists cacheConn "test-key"
+        checkValue v3 false
 
   where
         checkValue :: forall a. Eq a => Show a => Either Error a -> a -> Aff _ Unit
