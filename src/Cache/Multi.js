@@ -27,33 +27,32 @@ exports["newMultiJ"] = function(client){
   return client.multi();
 }
 
-exports["setMultiJ"] = function(arr){
-  return function(multi){
-    return multi.set(arr);
+exports["setMultiJ"] = function(key) {
+  return function (value) {
+    return function (px) {
+      return function (options) {
+        return function(multi) {
+          var allArgs = [key, value];
+
+          if (px != "") {
+            allArgs.push("PX");
+            allArgs.push(px);
+          }
+
+          if (options != "") {
+            allArgs.push(options);
+          }
+
+          return multi.set(allArgs)
+        }
+      }
+    }
   }
 }
 
 exports["getKeyMultiJ"] = function(key){
   return function(multi){
     return multi.get(key);
-  }
-}
-
-exports["setKeyMultiJ"] = function(key){
-  return function(value){
-    return function(multi){
-      return multi.set(key,value);
-    }
-  }
-}
-
-exports["setexKeyMultiJ"] = function(key){
-  return function(val){
-    return function(ttl){
-      return function(multi){
-        return multi.setex(key, ttl, val);
-      }
-    }
   }
 }
 

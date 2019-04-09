@@ -14,28 +14,27 @@ module Cache.Multi
   , publishToChannelMulti
   , rpopMulti
   , rpushMulti
-  , setexKeyMulti
   , setHashMulti
-  , setKeyMulti
   , setMulti
   , subscribeMulti
   ) where
 
-import Cache.Types (CacheConn)
+import Cache.Types (CacheConn, SetOptions)
 import Control.Monad.Aff (Aff, attempt)
 import Control.Monad.Eff.Exception (Error)
 import Control.Promise (Promise, toAff)
 import Data.Either (Either)
-import Prelude ((<<<))
+import Data.Int (round)
+import Data.Maybe (Maybe, maybe)
+import Data.Time.Duration (Milliseconds(..))
+import Prelude (show, ($), (<<<))
 
 foreign import data Multi :: Type
 
 foreign import newMultiJ :: CacheConn -> Multi
 
-foreign import setMultiJ ::  Array String -> Multi -> Multi
+foreign import setMultiJ :: String -> String -> String -> String -> Multi -> Multi
 foreign import getKeyMultiJ ::  String -> Multi -> Multi
-foreign import setKeyMultiJ ::  String -> String -> Multi -> Multi
-foreign import setexKeyMultiJ :: String -> String -> String -> Multi -> Multi
 foreign import delKeyMultiJ :: Array String -> Multi -> Multi
 foreign import expireMultiJ :: String -> String -> Multi -> Multi
 foreign import incrMultiJ ::  String -> Multi -> Multi
@@ -56,14 +55,10 @@ newMulti = newMultiJ
 execMulti :: forall e. Multi -> Aff e (Either Error (Array String))
 execMulti = attempt <<< toAff <<< execMultiJ
 
-setMulti :: Array String -> Multi -> Multi
-setMulti vals =  setMultiJ vals
-
-setKeyMulti :: String -> String -> Multi -> Multi
-setKeyMulti key val =  setKeyMultiJ key val
-
-setexKeyMulti :: String -> String -> String -> Multi -> Multi
-setexKeyMulti key value ttl =  setexKeyMultiJ key value ttl
+setMulti :: String -> String -> Maybe Milliseconds -> SetOptions -> Multi -> Multi
+setMulti key value mExp opts = setMultiJ key value (maybe "" msToString mExp) (show opts)
+  where
+        msToString (Milliseconds v) = show $ round v
 
 getKeyMulti :: String -> Multi -> Multi
 getKeyMulti val =  getKeyMultiJ val

@@ -40,9 +40,7 @@ module Cache
  , rpop
  , rpush
  , set
- , setex
  , setHash
- , setKey
  , setMessageHandler
  , socketKeepAlive
  , subscribe
@@ -53,9 +51,8 @@ module Cache
  , zipkinURL
  ) where
 
-import Cache.Types (CACHE, CacheAff, CacheConn, CacheConnOpts, CacheEff)
-
-import Control.Monad.Aff (Aff, attempt)
+import Cache.Types (CACHE, CacheAff, CacheConn, CacheConnOpts, CacheEff, SetOptions(..))
+import Control.Monad.Aff (attempt)
 import Control.Monad.Eff (Eff, kind Effect)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (Error)
@@ -63,9 +60,12 @@ import Control.Monad.Except (runExcept)
 import Control.Promise (Promise, toAff, toAffE)
 import Data.Either (Either, hush)
 import Data.Foreign (Foreign, readString)
-import Data.Maybe (Maybe)
+import Data.Function.Uncurried (Fn5, runFn5)
+import Data.Int (round)
+import Data.Maybe (Maybe, maybe)
 import Data.Options (Option, Options, opt, options)
-import Prelude (Unit, map, ($), (<<<))
+import Data.Time.Duration (Milliseconds(..))
+import Prelude (Unit, map, show, void, ($), (<<<))
 
 host :: Option CacheConnOpts String
 host = opt "host"
@@ -104,11 +104,9 @@ zipkinURL = opt "zipkinURL"
 zipkinServiceName :: Option CacheConnOpts String
 zipkinServiceName = opt "zipkinServiceName"
 
-foreign import setJ :: CacheConn -> Array String -> Promise String
-foreign import setKeyJ :: CacheConn -> String -> String -> Promise String
+foreign import setJ :: Fn5 CacheConn String String String String (Promise String)
 foreign import getKeyJ :: CacheConn -> String -> Promise String
 foreign import existsJ :: CacheConn -> String -> Promise Boolean
-foreign import setexJ :: CacheConn -> String -> String -> String -> Promise String
 foreign import delKeyJ :: CacheConn -> Array String -> Promise String
 foreign import expireJ :: CacheConn -> String -> String -> Promise String
 foreign import incrJ :: CacheConn -> String -> Promise String
@@ -127,14 +125,11 @@ foreign import lindexJ :: CacheConn -> String -> Int -> Promise Foreign
 getConn :: forall e. Options CacheConnOpts -> CacheAff e CacheConn
 getConn = liftEff <<< _newCache <<< options
 
-set :: forall e. CacheConn -> Array String -> Aff (cache :: CACHE | e ) (Either Error String)
-set cacheConn arr = attempt $ toAff $ setJ cacheConn arr
-
-setKey :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error String)
-setKey cacheConn key value = attempt $ toAff $ setKeyJ cacheConn key value
-
-setex :: forall e. CacheConn -> String -> String -> String -> CacheAff e  (Either Error String)
-setex cacheConn key value ttl = attempt $ toAff $ setexJ cacheConn key value ttl
+set :: forall e. CacheConn -> String -> String -> Maybe Milliseconds -> SetOptions -> CacheAff e (Either Error Unit)
+set cacheConn key value mExp opts =
+  attempt <<< void <<< toAff $ runFn5 setJ cacheConn key value (maybe "" msToString mExp) (show opts)
+  where
+        msToString (Milliseconds v) = show $ round v
 
 getKey :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
 getKey cacheConn key = attempt $ toAff $ getKeyJ cacheConn key

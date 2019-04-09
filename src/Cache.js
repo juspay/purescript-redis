@@ -76,28 +76,19 @@ var errorHandler = function(err) {
   }
 };
 
-exports["setKeyJ"] = function(client) {
-  return function(key) {
-    return function(value) {
-      return client.setAsync(key, value);
-    };
-  };
-}
+exports["setJ"] = function(client, key, value, px, options) {
+  var allArgs = [key, value];
 
-exports["setexJ"] = function(client) {
-  return function(key) {
-    return function(value) {
-      return function(ttl) {
-        return client.setexAsync(key, ttl, value);
-      };
-    };
-  };
-};
-
-exports["setJ"] = function(client) {
-  return function(arr) {
-    return client.setAsync(arr)
+  if (px != "") {
+    allArgs.push("PX");
+    allArgs.push(px);
   }
+
+  if (options != "") {
+    allArgs.push(options);
+  }
+
+  return client.setAsync(allArgs)
 }
 
 exports["getKeyJ"] = function(client) {
