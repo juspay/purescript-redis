@@ -2,8 +2,6 @@ module Test.Stream where
 
 import Cache (CacheConn, delKey)
 import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
-import Control.Monad.Aff (Aff)
-import Control.Monad.Eff.Class (liftEff)
 import Data.Array (index, length, singleton, (!!))
 import Data.Either (Either(..), fromRight)
 import Data.Maybe (Maybe(..), fromJust)
@@ -12,10 +10,8 @@ import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Partial.Unsafe (unsafePartial)
 import Prelude (Unit, bind, discard, flip, pure, show, unit, ($), (<>), (==))
-import Test.Spec (describe, it)
+import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
-import Test.Spec.Reporter (consoleReporter)
-import Test.Spec.Runner (run)
 
 testStream :: String
 testStream = "test-stream"
@@ -26,8 +22,8 @@ testGroup = "test-group"
 testConsumer :: String
 testConsumer = "test-consumer"
 
-streamTest :: CacheConn -> Aff _ Unit
-streamTest cacheConn = liftEff $ run [consoleReporter] do
+streamTest :: CacheConn -> Spec _ Unit
+streamTest cacheConn =
   describe "Stream" do
      -- FIXME: break up at commented "it"s on newer purescript-spec which can
      -- force sequential running of tests.
