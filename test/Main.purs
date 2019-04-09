@@ -17,8 +17,8 @@ startTest :: Aff _ Unit
 startTest = do
     let cacheOpts = C.host := "127.0.0.1" <> C.port := 6379 <> C.db := 0 <> C.socketKeepAlive := true
     cacheConn <- C.getConn cacheOpts
-    listTest cacheConn
     liftEff $ run [consoleReporter] do
+       listTest cacheConn
        multiTest cacheConn
        streamTest cacheConn
 
