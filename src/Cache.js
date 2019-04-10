@@ -107,10 +107,12 @@ exports["expireJ"] = function(client, key, ttl) {
   return client.expireAsync(key, ttl);
 }
 
-exports["incrJ"] = function(client) {
-  return function(key) {
-    return client.incrAsync(key);
-  }
+exports["incrJ"] = function(client, key) {
+  return client.incrAsync(key);
+}
+
+exports["incrbyJ"] = function(client, key, by) {
+  return client.incrbyAsync(key, by);
 }
 
 var callback = function(err, value) { return; }

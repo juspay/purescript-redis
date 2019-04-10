@@ -30,6 +30,7 @@ module Cache
  , get
  , host
  , incr
+ , incrby
  , lindex
  , lpop
  , lpush
@@ -110,7 +111,8 @@ foreign import getJ :: Fn2 CacheConn String (Promise Foreign)
 foreign import existsJ :: Fn2 CacheConn String (Promise Int)
 foreign import delJ :: Fn2 CacheConn (Array String) (Promise Int)
 foreign import expireJ :: Fn3 CacheConn String Int (Promise Int)
-foreign import incrJ :: CacheConn -> String -> Promise String
+foreign import incrJ :: Fn2 CacheConn String (Promise Int)
+foreign import incrbyJ :: Fn3 CacheConn String Int (Promise Int)
 foreign import setHashJ :: CacheConn -> String -> String -> String -> Promise String
 foreign import getHashKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
@@ -147,8 +149,11 @@ del cacheConn keys = attempt <<< toAff $ runFn2 delJ cacheConn (toArray keys)
 expire :: forall e. CacheConn -> String -> Seconds -> CacheAff e (Either Error Boolean)
 expire cacheConn key ttl = attempt <<< map isNotZero <<< toAff $ runFn3 expireJ cacheConn key (round <<< unwrap $ ttl)
 
-incr :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
-incr cacheConn key = attempt $ toAff $ incrJ cacheConn key
+incr :: forall e. CacheConn -> String -> CacheAff e (Either Error Int)
+incr cacheConn key = attempt <<< toAff $ runFn2 incrJ cacheConn key
+
+incrby :: forall e. CacheConn -> String -> Int -> CacheAff e (Either Error Int)
+incrby cacheConn key by = attempt <<< toAff $ runFn3 incrbyJ cacheConn key by
 
 setHash :: forall e. CacheConn -> String -> String -> String -> CacheAff e  (Either Error String)
 setHash cacheConn key field value = attempt $ toAff $ setHashJ cacheConn key field value

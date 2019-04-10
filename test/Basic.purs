@@ -1,6 +1,6 @@
 module Test.Basic where
 
-import Cache (CacheConn, SetOptions(..), del, exists, expire, get, set)
+import Cache (CacheConn, SetOptions(..), del, exists, expire, get, incr, incrby, set)
 import Control.Monad.Aff (Aff, delay)
 import Control.Monad.Eff.Exception (Error)
 import Data.Array.NonEmpty (singleton, (:))
@@ -42,6 +42,12 @@ basicTest cacheConn =
         _  <- set cacheConn "test-key" "1" Nothing NoOptions
         v6 <- expire cacheConn "test-key" (Seconds 1.0)
         checkValue v6 true
+
+        _  <- set cacheConn "test-key-1" "1" Nothing NoOptions
+        v7 <- incr cacheConn "test-key-1"
+        v8 <- incrby cacheConn "test-key-1" 2
+        checkValue v7 2
+        checkValue v8 4
 
   where
         checkValue :: forall a. Eq a => Show a => Either Error a -> a -> Aff _ Unit
