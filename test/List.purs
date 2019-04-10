@@ -4,12 +4,9 @@ import Prelude
 
 import Cache (CacheConn)
 import Cache (lindex, lpop, rpush) as C
-import Control.Monad.Aff (Aff)
-import Control.Monad.Eff.Exception (Error)
-import Data.Either (Either(..))
+import Cache.Internal (checkValue)
 import Data.Maybe (Maybe(..))
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (fail)
 
 listTest :: CacheConn -> Spec _ Unit
 listTest cacheConn =
@@ -33,9 +30,3 @@ listTest cacheConn =
         checkValue peek Nothing
 
         pure unit
-  where
-        checkValue :: forall a. Eq a => Show a => Either Error a -> a -> Aff _ Unit
-        checkValue eitherV exp = case eitherV of
-                                      Right v | v == exp -> pure unit
-                                      Right v'           -> fail $ "Unexpected value: " <> (show v')
-                                      Left err           -> fail $ show err

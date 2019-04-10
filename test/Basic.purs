@@ -1,13 +1,13 @@
 module Test.Basic where
 
 import Cache (CacheConn, SetOptions(..), del, exists, expire, get, incr, incrby, set)
-import Control.Monad.Aff (Aff, delay)
-import Control.Monad.Eff.Exception (Error)
+import Cache.Internal (checkValue)
+import Control.Monad.Aff (delay)
 import Data.Array.NonEmpty (singleton, (:))
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Milliseconds(..), Seconds(..))
-import Prelude (class Eq, class Show, Unit, bind, discard, pure, show, unit, ($), (<>), (==))
+import Prelude (Unit, bind, discard, pure, show, unit, ($))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail)
 
@@ -43,15 +43,7 @@ basicTest cacheConn =
         v6 <- expire cacheConn "test-key" (Seconds 1.0)
         checkValue v6 true
 
-        _  <- set cacheConn "test-key-1" "1" Nothing NoOptions
         v7 <- incr cacheConn "test-key-1"
         v8 <- incrby cacheConn "test-key-1" 2
-        checkValue v7 2
-        checkValue v8 4
-
-  where
-        checkValue :: forall a. Eq a => Show a => Either Error a -> a -> Aff _ Unit
-        checkValue eitherV exp = case eitherV of
-                                      Right v | v == exp -> pure unit
-                                      Right v'           -> fail $ "Bad value: " <> show v'
-                                      Left err           -> fail $ show err
+        checkValue v7 1
+        checkValue v8 3

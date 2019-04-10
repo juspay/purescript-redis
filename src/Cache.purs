@@ -26,7 +26,6 @@ module Cache
  , exists
  , expire
  , getConn
- , getHashKey
  , get
  , host
  , incr
@@ -40,7 +39,6 @@ module Cache
  , rpop
  , rpush
  , set
- , setHash
  , setMessageHandler
  , socketKeepAlive
  , subscribe
@@ -51,23 +49,23 @@ module Cache
  , zipkinURL
  ) where
 
+import Cache.Internal (isNotZero, readStringMaybe)
 import Cache.Types (CACHE, CacheAff, CacheConn, CacheConnOpts, CacheEff, SetOptions(..))
 import Control.Monad.Aff (attempt)
 import Control.Monad.Eff (Eff, kind Effect)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (Error)
-import Control.Monad.Except (runExcept)
 import Control.Promise (Promise, toAff, toAffE)
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
-import Data.Either (Either, hush)
-import Data.Foreign (Foreign, readString)
+import Data.Either (Either)
+import Data.Foreign (Foreign)
 import Data.Function.Uncurried (Fn2, Fn3, Fn5, runFn2, runFn3, runFn5)
 import Data.Int (round)
 import Data.Maybe (Maybe, maybe)
 import Data.Newtype (unwrap)
 import Data.Options (Option, Options, opt, options)
 import Data.Time.Duration (Milliseconds, Seconds)
-import Prelude (Unit, map, show, void, ($), (/=), (<<<))
+import Prelude (Unit, map, show, void, ($), (<<<))
 
 host :: Option CacheConnOpts String
 host = opt "host"
@@ -113,8 +111,6 @@ foreign import delJ :: Fn2 CacheConn (Array String) (Promise Int)
 foreign import expireJ :: Fn3 CacheConn String Int (Promise Int)
 foreign import incrJ :: Fn2 CacheConn String (Promise Int)
 foreign import incrbyJ :: Fn3 CacheConn String Int (Promise Int)
-foreign import setHashJ :: CacheConn -> String -> String -> String -> Promise String
-foreign import getHashKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
 foreign import subscribeJ :: forall eff. CacheConn -> String -> Eff eff (Promise String)
 foreign import setMessageHandlerJ :: forall eff1 eff2. CacheConn -> (String -> String -> Eff eff1 Unit) -> Eff eff2 (Promise String)
@@ -124,9 +120,6 @@ foreign import rpushJ :: CacheConn -> String -> String -> Promise Int
 foreign import lpopJ :: CacheConn -> String -> Promise Foreign
 foreign import lpushJ :: CacheConn -> String -> String -> Promise Int
 foreign import lindexJ :: CacheConn -> String -> Int -> Promise Foreign
-
-isNotZero :: Int -> Boolean
-isNotZero x = x /= 0
 
 getConn :: forall e. Options CacheConnOpts -> CacheAff e CacheConn
 getConn = liftEff <<< _newCache <<< options
@@ -155,20 +148,11 @@ incr cacheConn key = attempt <<< toAff $ runFn2 incrJ cacheConn key
 incrby :: forall e. CacheConn -> String -> Int -> CacheAff e (Either Error Int)
 incrby cacheConn key by = attempt <<< toAff $ runFn3 incrbyJ cacheConn key by
 
-setHash :: forall e. CacheConn -> String -> String -> String -> CacheAff e  (Either Error String)
-setHash cacheConn key field value = attempt $ toAff $ setHashJ cacheConn key field value
-
-getHashKey :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error String)
-getHashKey cacheConn key field = attempt $ toAff $ getHashKeyJ cacheConn key field
-
 publishToChannel :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error String)
 publishToChannel cacheConn channel message = attempt $ toAff $ publishToChannelJ cacheConn channel message
 
 subscribe :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
 subscribe cacheConn channel = attempt $ toAffE $ subscribeJ cacheConn channel
-
-readStringMaybe :: Foreign -> Maybe String
-readStringMaybe = hush <<< runExcept <<< readString
 
 rpop :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
 rpop cacheConn listName = attempt $ map readStringMaybe $ toAff $ rpopJ cacheConn listName

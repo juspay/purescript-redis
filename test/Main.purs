@@ -8,6 +8,7 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
 import Data.Options ((:=))
 import Test.Basic (basicTest)
+import Test.Hash (hashTest)
 import Test.List (listTest)
 import Test.Multi (multiTest)
 import Test.Spec.Reporter (consoleReporter)
@@ -21,6 +22,7 @@ startTest = do
     liftEff $ run [consoleReporter] do
        basicTest cacheConn
        listTest cacheConn
+       hashTest cacheConn
        multiTest cacheConn
        streamTest cacheConn
 

@@ -115,26 +115,6 @@ exports["incrbyJ"] = function(client, key, by) {
   return client.incrbyAsync(key, by);
 }
 
-var callback = function(err, value) { return; }
-
-exports["setHashJ"] = function(client) {
-  return function(key) {
-      return function(field){
-        return function(value) {
-          return client.hsetAsync(key, field, value);
-        }
-      }
-  }
-}
-
-exports["getHashKeyJ"] = function(client) {
-  return function(key) {
-    return function(field) {
-      return client.hgetAsync(key, field);
-    }
-  }
-}
-
 exports["publishToChannelJ"] = function(client) {
   return function(channel) {
     return function(message) {
@@ -142,6 +122,8 @@ exports["publishToChannelJ"] = function(client) {
     }
   }; 
 }
+
+var callback = function(err, value) { return; }
 
 exports["subscribeJ"] = function(client) {
   return function(channel) {
