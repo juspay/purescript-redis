@@ -29,6 +29,7 @@ streamTest cacheConn =
      -- FIXME: break up at commented "it"s on newer purescript-spec which can
      -- force sequential running of tests.
      it "works" do
+        _ <- del cacheConn $ NEArray.singleton testStream
 
      --it "returns 0 on non-existent stream" do
         _   <- del cacheConn $ NEArray.singleton testStream
