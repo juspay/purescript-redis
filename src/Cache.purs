@@ -60,11 +60,12 @@ import Control.Promise (Promise, toAff, toAffE)
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either, hush)
 import Data.Foreign (Foreign, readString)
-import Data.Function.Uncurried (Fn2, Fn5, runFn2, runFn5)
+import Data.Function.Uncurried (Fn2, Fn3, Fn5, runFn2, runFn3, runFn5)
 import Data.Int (round)
 import Data.Maybe (Maybe, maybe)
+import Data.Newtype (unwrap)
 import Data.Options (Option, Options, opt, options)
-import Data.Time.Duration (Milliseconds(..))
+import Data.Time.Duration (Milliseconds, Seconds)
 import Prelude (Unit, map, show, void, ($), (/=), (<<<))
 
 host :: Option CacheConnOpts String
@@ -108,7 +109,7 @@ foreign import setJ :: Fn5 CacheConn String String String String (Promise String
 foreign import getJ :: Fn2 CacheConn String (Promise Foreign)
 foreign import existsJ :: Fn2 CacheConn String (Promise Int)
 foreign import delJ :: Fn2 CacheConn (Array String) (Promise Int)
-foreign import expireJ :: CacheConn -> String -> String -> Promise String
+foreign import expireJ :: Fn3 CacheConn String Int (Promise Int)
 foreign import incrJ :: CacheConn -> String -> Promise String
 foreign import setHashJ :: CacheConn -> String -> String -> String -> Promise String
 foreign import getHashKeyJ :: CacheConn -> String -> String -> Promise String
@@ -122,6 +123,9 @@ foreign import lpopJ :: CacheConn -> String -> Promise Foreign
 foreign import lpushJ :: CacheConn -> String -> String -> Promise Int
 foreign import lindexJ :: CacheConn -> String -> Int -> Promise Foreign
 
+isNotZero :: Int -> Boolean
+isNotZero x = x /= 0
+
 getConn :: forall e. Options CacheConnOpts -> CacheAff e CacheConn
 getConn = liftEff <<< _newCache <<< options
 
@@ -129,19 +133,19 @@ set :: forall e. CacheConn -> String -> String -> Maybe Milliseconds -> SetOptio
 set cacheConn key value mExp opts =
   attempt <<< void <<< toAff $ runFn5 setJ cacheConn key value (maybe "" msToString mExp) (show opts)
   where
-        msToString (Milliseconds v) = show $ round v
+        msToString = show <<< round <<< unwrap
 
 get :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
 get cacheConn key = attempt <<< map readStringMaybe <<< toAff $ runFn2 getJ cacheConn key
 
 exists :: forall e. CacheConn -> String -> CacheAff e (Either Error Boolean)
-exists cacheConn = attempt <<< map (\x -> x /= 0) <<< toAff <<< runFn2 existsJ cacheConn
+exists cacheConn = attempt <<< map isNotZero <<< toAff <<< runFn2 existsJ cacheConn
 
 del :: forall e. CacheConn -> NonEmptyArray String -> CacheAff e (Either Error Int)
 del cacheConn keys = attempt <<< toAff $ runFn2 delJ cacheConn (toArray keys)
 
-expire :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error String)
-expire cacheConn key ttl = attempt $ toAff $ expireJ cacheConn key ttl
+expire :: forall e. CacheConn -> String -> Seconds -> CacheAff e (Either Error Boolean)
+expire cacheConn key ttl = attempt <<< map isNotZero <<< toAff $ runFn3 expireJ cacheConn key (round <<< unwrap $ ttl)
 
 incr :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
 incr cacheConn key = attempt $ toAff $ incrJ cacheConn key

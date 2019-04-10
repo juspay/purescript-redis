@@ -103,12 +103,8 @@ exports["delJ"] = function(client, key) {
   return client.delAsync(key);
 };
 
-exports["expireJ"] = function(client) {
-  return function(key) {
-    return function(ttl) {
-      return client.expire(key, ttl);
-    }
-  }
+exports["expireJ"] = function(client, key, ttl) {
+  return client.expireAsync(key, ttl);
 }
 
 exports["incrJ"] = function(client) {
