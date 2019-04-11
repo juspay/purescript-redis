@@ -25,7 +25,6 @@ module Cache
  , del
  , exists
  , expire
- , getConn
  , get
  , host
  , incr
@@ -33,6 +32,7 @@ module Cache
  , lindex
  , lpop
  , lpush
+ , newConn
  , port
  , publishToChannel
  , retryStrategy
@@ -53,7 +53,6 @@ import Cache.Internal (isNotZero, readStringMaybe)
 import Cache.Types (CACHE, CacheAff, CacheConn, CacheConnOpts, CacheEff, SetOptions(..))
 import Control.Monad.Aff (attempt)
 import Control.Monad.Eff (Eff, kind Effect)
-import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (Error)
 import Control.Promise (Promise, toAff, toAffE)
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
@@ -114,15 +113,15 @@ foreign import incrbyJ :: Fn3 CacheConn String Int (Promise Int)
 foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
 foreign import subscribeJ :: forall eff. CacheConn -> String -> Eff eff (Promise String)
 foreign import setMessageHandlerJ :: forall eff1 eff2. CacheConn -> (String -> String -> Eff eff1 Unit) -> Eff eff2 (Promise String)
-foreign import _newCache :: forall e. Foreign -> CacheEff e CacheConn
+foreign import _newCache :: Foreign -> Promise CacheConn
 foreign import rpopJ :: CacheConn -> String -> Promise Foreign
 foreign import rpushJ :: CacheConn -> String -> String -> Promise Int
 foreign import lpopJ :: CacheConn -> String -> Promise Foreign
 foreign import lpushJ :: CacheConn -> String -> String -> Promise Int
 foreign import lindexJ :: CacheConn -> String -> Int -> Promise Foreign
 
-getConn :: forall e. Options CacheConnOpts -> CacheAff e CacheConn
-getConn = liftEff <<< _newCache <<< options
+newConn :: forall e. Options CacheConnOpts -> CacheAff e (Either Error CacheConn)
+newConn = attempt <<< toAff <<< _newCache <<< options
 
 set :: forall e. CacheConn -> String -> String -> Maybe Milliseconds -> SetOptions -> CacheAff e (Either Error Unit)
 set cacheConn key value mExp opts =
