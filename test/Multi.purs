@@ -25,7 +25,7 @@ multiTest cacheConn =
         checkValue val 3 "100"
   where
         checkValue res i value = case (flip index i <$> res) of
-                                      Right (Just value) -> pure unit
-                                      Right (Just v)     -> fail $ "Bad value: " <> v
-                                      Right Nothing      -> fail $ "Did not get value"
-                                      Left err           -> fail $ show err
+                                      Right (Just v) | v == value -> pure unit
+                                      Right (Just v')             -> fail $ "Bad value: " <> v'
+                                      Right Nothing               -> fail $ "Did not get value"
+                                      Left err                    -> fail $ show err
