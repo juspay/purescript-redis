@@ -30,15 +30,10 @@ module Cache
  , host
  , incr
  , incrby
- , lindex
- , lpop
- , lpush
  , newConn
  , port
  , publish
  , retryStrategy
- , rpop
- , rpush
  , set
  , setMessageHandler
  , socketKeepAlive
@@ -117,11 +112,6 @@ foreign import subscribeJ :: Fn2 CacheConn (Array String) (Promise String)
 foreign import setMessageHandlerJ :: forall e eff. Fn2 CacheConn (String -> String -> Eff eff Unit) (CacheEff e Unit)
 foreign import _newCache :: Foreign -> Promise CacheConn
 foreign import _duplicateCache :: Fn2 CacheConn Foreign (Promise CacheConn)
-foreign import rpopJ :: CacheConn -> String -> Promise Foreign
-foreign import rpushJ :: CacheConn -> String -> String -> Promise Int
-foreign import lpopJ :: CacheConn -> String -> Promise Foreign
-foreign import lpushJ :: CacheConn -> String -> String -> Promise Int
-foreign import lindexJ :: CacheConn -> String -> Int -> Promise Foreign
 
 newConn :: forall e. Options CacheConnOpts -> CacheAff e (Either Error CacheConn)
 newConn = attempt <<< toAff <<< _newCache <<< options
@@ -162,18 +152,3 @@ subscribe cacheConn channel = attempt <<< void <<< toAff $ runFn2 subscribeJ cac
 
 setMessageHandler :: forall e eff. CacheConn -> (String -> String -> Eff eff Unit) -> CacheEff e Unit
 setMessageHandler cacheConn f = runFn2 setMessageHandlerJ cacheConn f
-
-rpop :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
-rpop cacheConn listName = attempt $ map readStringMaybe $ toAff $ rpopJ cacheConn listName
-
-rpush :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error Int)
-rpush cacheConn listName value = attempt $ toAff $ rpushJ cacheConn listName value
-
-lpop :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
-lpop cacheConn listName = attempt $ map readStringMaybe $ toAff $ lpopJ cacheConn listName
-
-lpush :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error Int)
-lpush cacheConn listName value = attempt $ toAff $ lpushJ cacheConn listName value
-
-lindex :: forall e. CacheConn -> String -> Int -> CacheAff e  (Either Error (Maybe String))
-lindex cacheConn listName index = attempt $ map readStringMaybe $ toAff $ lindexJ cacheConn listName index

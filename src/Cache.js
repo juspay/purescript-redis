@@ -146,39 +146,3 @@ exports["setMessageHandlerJ"] = function(client, handler) {
     });
   };
 }
-
-exports["rpopJ"] = function(client) {
-  return function(listname) {
-    return function(value) {
-      return client.rpopAsync(listname, value);
-    }
-  }
-}
-
-exports["rpushJ"] = function(client) {
-  return function(listname) {
-    return function(value) {
-      return client.rpushAsync(listname, value);
-    }
-  }
-}
-
-exports["lpopJ"] = function(client) {
-  return function(listname) {
-    return client.lpopAsync(listname);
-  }
-}
-
-exports["lpushJ"] = function(client) {
-  return function(listname) {
-    return client.lpushAsync(listname);
-  }
-}
-
-exports["lindexJ"] = function(client) {
-  return function(listname) {
-    return function(index) {
-      return client.lindexAsync(listname, index);
-    }
-  }
-}

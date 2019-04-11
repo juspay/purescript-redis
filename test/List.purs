@@ -3,8 +3,8 @@ module Test.List where
 import Prelude
 
 import Cache (CacheConn, del)
-import Cache (lindex, lpop, rpush) as C
 import Cache.Internal (checkValue)
+import Cache.List (lindex, lpop, lpush, rpop, rpush)
 import Data.Array.NonEmpty (singleton)
 import Data.Maybe (Maybe(..))
 import Test.Spec (Spec, describe, it)
@@ -18,21 +18,21 @@ listTest cacheConn =
      it "works" do
         _ <- del cacheConn $ singleton testKey
 
-        v0 <- C.lpop cacheConn testKey
+        v0 <- lpop cacheConn testKey
         checkValue v0 Nothing
 
-        v1 <- C.rpush cacheConn testKey "hi"
+        v1 <- rpush cacheConn testKey "hi"
         checkValue v1 1
 
-        v2 <- C.lpop cacheConn testKey
+        v2 <- lpop cacheConn testKey
         checkValue v2 (Just "hi")
 
-        v3 <- C.lpop cacheConn testKey
+        v3 <- lpop cacheConn testKey
         checkValue v3 Nothing
 
-        l <- C.rpush cacheConn "DBACTIONS" "SELCT * FROM CUSTOMERS;"
-        pop <- C.lpop cacheConn "DBACTIONS"
-        peek <- C.lindex cacheConn "DBACTIONS" 0
+        l <- lpush cacheConn "DBACTIONS" "SELCT * FROM CUSTOMERS;"
+        pop <- rpop cacheConn "DBACTIONS"
+        peek <- lindex cacheConn "DBACTIONS" 0
         checkValue peek Nothing
 
         -- Clean up
