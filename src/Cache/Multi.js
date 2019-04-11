@@ -50,13 +50,13 @@ exports["setMultiJ"] = function(key) {
   }
 }
 
-exports["getKeyMultiJ"] = function(key){
+exports["getMultiJ"] = function(key){
   return function(multi){
     return multi.get(key);
   }
 }
 
-exports["delKeyMultiJ"] = function(key){
+exports["delMultiJ"] = function(key){
   return function(multi){
     return multi.del(key);
   }
@@ -76,7 +76,7 @@ exports["incrMultiJ"] = function(key){
   }
 }
 
-exports["setHashMultiJ"] = function(key){
+exports["hsetMultiJ"] = function(key){
   return function(field){
     return function(value){
       return function(multi){
@@ -86,7 +86,7 @@ exports["setHashMultiJ"] = function(key){
   }
 }
 
-exports["getHashMultiJ"] = function(key){
+exports["hgetMultiJ"] = function(key){
   return function(field){
     return function(multi){
       return multi.hget(key, field);
@@ -94,7 +94,7 @@ exports["getHashMultiJ"] = function(key){
   }
 }
 
-exports["publishCMultiJ"] = function(channel){
+exports["publishMultiJ"] = function(channel){
   return function(message){
     return function(multi){
       return multi.publish(channel,message);

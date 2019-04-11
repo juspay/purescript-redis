@@ -3,7 +3,7 @@ module Test.Multi where
 import Prelude
 
 import Cache (CacheConn, SetOptions(..))
-import Cache.Multi (execMulti, getHashKeyMulti, getKeyMulti, newMulti, setHashMulti, setMulti) as C
+import Cache.Multi (execMulti, getMulti, hgetMulti, hsetMulti, newMulti, setMulti)
 import Data.Array (index)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
@@ -14,13 +14,13 @@ multiTest :: CacheConn -> Spec _ Unit
 multiTest cacheConn =
   describe "Multi" do
      it "works" do
-        let multi = C.newMulti cacheConn
-                  # C.setMulti "mykey" "myvalue" Nothing NoOptions
-                  # C.getKeyMulti "mykey"
-                  # C.setHashMulti "myhash" "firstKey" "100"
-                  # C.getHashKeyMulti "myhash" "firstKey"
+        let multi = newMulti cacheConn
+                  # setMulti "mykey" "myvalue" Nothing NoOptions
+                  # getMulti "mykey"
+                  # hsetMulti "myhash" "firstKey" "100"
+                  # hgetMulti "myhash" "firstKey"
         {-- val <- C.setKeyMulti "tt" "100" multi >>= C.setexKeyMulti "testing" "200" "1000" >>= C.incrMulti "testing" >>= C.getKeyMulti "tt" --}
-        val <- C.execMulti multi
+        val <- execMulti multi
         checkValue val 1 "myvalue"
         checkValue val 3 "100"
   where

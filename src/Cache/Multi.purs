@@ -1,20 +1,19 @@
 module Cache.Multi
   ( Multi
-  , delKeyListMulti
-  , delKeyMulti
+  , delMulti
   , execMulti
   , expireMulti
-  , getHashKeyMulti
-  , getKeyMulti
+  , getMulti
+  , hgetMulti
+  , hsetMulti
   , incrMulti
   , lindexMulti
   , lpopMulti
   , lpushMulti
   , newMulti
-  , publishToChannelMulti
+  , publishMulti
   , rpopMulti
   , rpushMulti
-  , setHashMulti
   , setMulti
   , subscribeMulti
   ) where
@@ -23,6 +22,7 @@ import Cache.Types (CacheConn, SetOptions)
 import Control.Monad.Aff (Aff, attempt)
 import Control.Monad.Eff.Exception (Error)
 import Control.Promise (Promise, toAff)
+import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either)
 import Data.Int (round)
 import Data.Maybe (Maybe, maybe)
@@ -34,13 +34,13 @@ foreign import data Multi :: Type
 foreign import newMultiJ :: CacheConn -> Multi
 
 foreign import setMultiJ :: String -> String -> String -> String -> Multi -> Multi
-foreign import getKeyMultiJ ::  String -> Multi -> Multi
-foreign import delKeyMultiJ :: Array String -> Multi -> Multi
+foreign import getMultiJ ::  String -> Multi -> Multi
+foreign import delMultiJ :: Array String -> Multi -> Multi
 foreign import expireMultiJ :: String -> String -> Multi -> Multi
 foreign import incrMultiJ ::  String -> Multi -> Multi
-foreign import setHashMultiJ :: String -> String -> String -> Multi -> Multi
-foreign import getHashMultiJ :: String -> String -> Multi -> Multi
-foreign import publishCMultiJ :: String -> String -> Multi -> Multi
+foreign import hsetMultiJ :: String -> String -> String -> Multi -> Multi
+foreign import hgetMultiJ :: String -> String -> Multi -> Multi
+foreign import publishMultiJ :: String -> String -> Multi -> Multi
 foreign import subscribeMultiJ :: String -> Multi -> Multi
 foreign import rpopMultiJ :: String -> Multi -> Multi
 foreign import rpushMultiJ :: String -> String -> Multi -> Multi
@@ -60,14 +60,11 @@ setMulti key value mExp opts = setMultiJ key value (maybe "" msToString mExp) (s
   where
         msToString (Milliseconds v) = show $ round v
 
-getKeyMulti :: String -> Multi -> Multi
-getKeyMulti val =  getKeyMultiJ val
+getMulti :: String -> Multi -> Multi
+getMulti val = getMultiJ val
 
-delKeyMulti :: String -> Multi -> Multi
-delKeyMulti key = delKeyMultiJ [key]
-
-delKeyListMulti :: Array String -> Multi -> Multi
-delKeyListMulti keys =  delKeyMultiJ keys
+delMulti :: NonEmptyArray String -> Multi -> Multi
+delMulti keys = delMultiJ (toArray keys)
 
 expireMulti :: String -> String -> Multi -> Multi
 expireMulti key ttl = expireMultiJ key ttl
@@ -75,17 +72,17 @@ expireMulti key ttl = expireMultiJ key ttl
 incrMulti :: String -> Multi -> Multi
 incrMulti key = incrMultiJ key
 
-setHashMulti :: String -> String -> String -> Multi -> Multi
-setHashMulti key field val = setHashMultiJ key field val
+hsetMulti :: String -> String -> String -> Multi -> Multi
+hsetMulti key field val = hsetMultiJ key field val
 
-getHashKeyMulti :: String -> String -> Multi -> Multi
-getHashKeyMulti key field = getHashMultiJ key field
+hgetMulti :: String -> String -> Multi -> Multi
+hgetMulti key field = hgetMultiJ key field
 
-publishToChannelMulti :: String -> String -> Multi ->  Multi
-publishToChannelMulti channel message = publishCMultiJ channel message
+publishMulti :: String -> String -> Multi -> Multi
+publishMulti channel message = publishMultiJ channel message
 
 subscribeMulti :: String -> Multi -> Multi
-subscribeMulti channel =  subscribeMultiJ channel
+subscribeMulti channel = subscribeMultiJ channel
 
 rpopMulti :: String -> Multi -> Multi
 rpopMulti listName = rpopMultiJ listName
@@ -100,4 +97,4 @@ lpushMulti :: String -> String -> Multi -> Multi
 lpushMulti listName value = lpushMultiJ listName value
 
 lindexMulti :: String -> Int -> Multi -> Multi
-lindexMulti listName index = lindexMultiJ  listName index
+lindexMulti listName index = lindexMultiJ listName index
