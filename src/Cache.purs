@@ -23,6 +23,7 @@ module Cache
  ( module Cache.Types
  , db
  , del
+ , duplicateConn
  , exists
  , expire
  , get
@@ -34,7 +35,7 @@ module Cache
  , lpush
  , newConn
  , port
- , publishToChannel
+ , publish
  , retryStrategy
  , rpop
  , rpush
@@ -54,13 +55,14 @@ import Cache.Types (CACHE, CacheAff, CacheConn, CacheConnOpts, CacheEff, SetOpti
 import Control.Monad.Aff (attempt)
 import Control.Monad.Eff (Eff, kind Effect)
 import Control.Monad.Eff.Exception (Error)
-import Control.Promise (Promise, toAff, toAffE)
+import Control.Promise (Promise, toAff)
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either)
 import Data.Foreign (Foreign)
+import Data.Foreign.NullOrUndefined (undefined)
 import Data.Function.Uncurried (Fn2, Fn3, Fn5, runFn2, runFn3, runFn5)
 import Data.Int (round)
-import Data.Maybe (Maybe, maybe)
+import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
 import Data.Options (Option, Options, opt, options)
 import Data.Time.Duration (Milliseconds, Seconds)
@@ -110,10 +112,11 @@ foreign import delJ :: Fn2 CacheConn (Array String) (Promise Int)
 foreign import expireJ :: Fn3 CacheConn String Int (Promise Int)
 foreign import incrJ :: Fn2 CacheConn String (Promise Int)
 foreign import incrbyJ :: Fn3 CacheConn String Int (Promise Int)
-foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
-foreign import subscribeJ :: forall eff. CacheConn -> String -> Eff eff (Promise String)
-foreign import setMessageHandlerJ :: forall eff1 eff2. CacheConn -> (String -> String -> Eff eff1 Unit) -> Eff eff2 (Promise String)
+foreign import publishJ :: Fn3 CacheConn String String (Promise Int)
+foreign import subscribeJ :: Fn2 CacheConn (Array String) (Promise String)
+foreign import setMessageHandlerJ :: forall e eff. Fn2 CacheConn (String -> String -> Eff eff Unit) (CacheEff e Unit)
 foreign import _newCache :: Foreign -> Promise CacheConn
+foreign import _duplicateCache :: Fn2 CacheConn Foreign (Promise CacheConn)
 foreign import rpopJ :: CacheConn -> String -> Promise Foreign
 foreign import rpushJ :: CacheConn -> String -> String -> Promise Int
 foreign import lpopJ :: CacheConn -> String -> Promise Foreign
@@ -122,6 +125,10 @@ foreign import lindexJ :: CacheConn -> String -> Int -> Promise Foreign
 
 newConn :: forall e. Options CacheConnOpts -> CacheAff e (Either Error CacheConn)
 newConn = attempt <<< toAff <<< _newCache <<< options
+
+duplicateConn :: forall e. CacheConn -> Maybe (Options CacheConnOpts) -> CacheAff e (Either Error CacheConn)
+duplicateConn cacheConn Nothing     = attempt <<< toAff $ runFn2 _duplicateCache cacheConn undefined
+duplicateConn cacheConn (Just opts) = attempt <<< toAff $ runFn2 _duplicateCache cacheConn (options opts)
 
 set :: forall e. CacheConn -> String -> String -> Maybe Milliseconds -> SetOptions -> CacheAff e (Either Error Unit)
 set cacheConn key value mExp opts =
@@ -147,11 +154,14 @@ incr cacheConn key = attempt <<< toAff $ runFn2 incrJ cacheConn key
 incrby :: forall e. CacheConn -> String -> Int -> CacheAff e (Either Error Int)
 incrby cacheConn key by = attempt <<< toAff $ runFn3 incrbyJ cacheConn key by
 
-publishToChannel :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error String)
-publishToChannel cacheConn channel message = attempt $ toAff $ publishToChannelJ cacheConn channel message
+publish :: forall e. CacheConn -> String -> String -> CacheAff e (Either Error Int)
+publish cacheConn channel message = attempt <<< toAff $ runFn3 publishJ cacheConn channel message
 
-subscribe :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
-subscribe cacheConn channel = attempt $ toAffE $ subscribeJ cacheConn channel
+subscribe :: forall e. CacheConn -> NonEmptyArray String -> CacheAff e (Either Error Unit)
+subscribe cacheConn channel = attempt <<< void <<< toAff $ runFn2 subscribeJ cacheConn (toArray channel)
+
+setMessageHandler :: forall e eff. CacheConn -> (String -> String -> Eff eff Unit) -> CacheEff e Unit
+setMessageHandler cacheConn f = runFn2 setMessageHandlerJ cacheConn f
 
 rpop :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
 rpop cacheConn listName = attempt $ map readStringMaybe $ toAff $ rpopJ cacheConn listName
@@ -167,6 +177,3 @@ lpush cacheConn listName value = attempt $ toAff $ lpushJ cacheConn listName val
 
 lindex :: forall e. CacheConn -> String -> Int -> CacheAff e  (Either Error (Maybe String))
 lindex cacheConn listName index = attempt $ map readStringMaybe $ toAff $ lindexJ cacheConn listName index
-
-setMessageHandler :: forall e eff. CacheConn -> (String -> String -> Eff eff Unit) -> CacheAff e  (Either Error String)
-setMessageHandler cacheConn f = attempt $ toAffE $ setMessageHandlerJ cacheConn f

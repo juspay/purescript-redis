@@ -12,6 +12,7 @@ import Test.Basic (basicTest)
 import Test.Hash (hashTest)
 import Test.List (listTest)
 import Test.Multi (multiTest)
+import Test.PubSub (pubsubTest)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (fail)
 import Test.Spec.Reporter (consoleReporter)
@@ -26,6 +27,7 @@ startTest = do
        case eCacheConn of
          Right cacheConn -> do
             basicTest cacheConn
+            pubsubTest cacheConn
             listTest cacheConn
             hashTest cacheConn
             multiTest cacheConn

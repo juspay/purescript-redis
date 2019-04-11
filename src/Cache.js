@@ -78,6 +78,14 @@ exports["_newCache"] = function (options) {
   });
 };
 
+exports["_duplicateCache"] = function (client, options) {
+  if (options === undefined) {
+    return client.duplicateAsync();
+  } else {
+    return client.duplicateAsync(options);
+  }
+}
+
 var errorHandler = function(err) {
   if (err) {
     console.log("Redis connection lost", err);
@@ -123,37 +131,20 @@ exports["incrbyJ"] = function(client, key, by) {
   return client.incrbyAsync(key, by);
 }
 
-exports["publishToChannelJ"] = function(client) {
-  return function(channel) {
-    return function(message) {
-      return client.publish(channel, message);
-    }
-  }; 
+exports["publishJ"] = function(client, channel, message) {
+  return client.publishAsync(channel, message);
 }
 
-var callback = function(err, value) { return; }
-
-exports["subscribeJ"] = function(client) {
-  return function(channel) {
-    return function() {
-      return client.subscribe(channel, callback)
-    }
-  }
+exports["subscribeJ"] = function(client, channels) {
+  return client.subscribeAsync(channels);
 }
 
-var getDefaultRetryStratergyJ = function() {
-  return function(options) {
-    return options.try_after * 1000;
-  }
-}
-
-exports["setMessageHandlerJ"] = function(client) {
-  return function(handler) {
-    return function() {
-      client.on("message", function (channelName, channelData) {
-        handler(channelName)(channelData)()
-      })}
-  }
+exports["setMessageHandlerJ"] = function(client, handler) {
+  return function() {
+    client.on("message", function (channelName, channelData) {
+      handler(channelName)(channelData)()
+    });
+  };
 }
 
 exports["rpopJ"] = function(client) {
