@@ -35,6 +35,8 @@ import Data.Either (Either(..))
 import Data.Foldable (foldMap)
 import Data.Foreign (F, Foreign, isNull, readArray, readString)
 import Data.Function.Uncurried (Fn2, Fn3, Fn4, Fn5, Fn7, runFn2, runFn3, runFn4, runFn5, runFn7)
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Eq (genericEq)
 import Data.Int (even, odd)
 import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Data.StrMap (StrMap, empty, fromFoldable)
@@ -43,7 +45,7 @@ import Data.String.CodePoints (split)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), fst, snd)
 import Partial.Unsafe (unsafePartial)
-import Prelude (class Show, Unit, bind, map, pure, show, ($), (&&), (<), (<$>), (<*>), (<<<), (<>), (==), (>=), (>>>))
+import Prelude (class Eq, class Show, Unit, bind, map, pure, show, ($), (&&), (<), (<$>), (<*>), (<<<), (<>), (==), (>=), (>>>))
 
 -- Streams API
 
@@ -64,6 +66,10 @@ data EntryID = EntryID BigInt BigInt
              | MinID
              | MaxID
              | NewID
+
+derive instance genericEntryID :: Generic EntryID _
+instance eqEntryID :: Eq EntryID where
+    eq = genericEq
 
 data Entry = Entry EntryID (Array Item)
 

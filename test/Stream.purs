@@ -1,16 +1,18 @@
 module Test.Stream where
 
 import Cache (CacheConn, del)
-import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
+import Cache.Internal (checkRight, checkValue)
+import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, newEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
 import Data.Array (index, length, singleton, (!!))
 import Data.Array.NonEmpty (singleton) as NEArray
+import Data.BigInt (fromInt)
 import Data.Either (Either(..), fromRight)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.StrMap (lookup, size)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Partial.Unsafe (unsafePartial)
-import Prelude (Unit, bind, discard, flip, pure, show, unit, ($), (<>), (==))
+import Prelude (Unit, bind, discard, flip, pure, show, unit, ($), (<$>), (<>), (==))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
 
@@ -23,6 +25,9 @@ testGroup = "test-group"
 testConsumer :: String
 testConsumer = "test-consumer"
 
+testId :: EntryID
+testId = unsafePartial $ fromJust $ newEntryId (fromInt 9999999) (fromInt 0)
+
 streamTest :: CacheConn -> Spec _ Unit
 streamTest cacheConn =
   describe "Stream" do
@@ -34,41 +39,27 @@ streamTest cacheConn =
      --it "returns 0 on non-existent stream" do
         _   <- del cacheConn $ NEArray.singleton testStream
         len <- xlen cacheConn testStream
-        case len of
-             Right 0  -> pure unit
-             Right v  -> fail $ "Bad value: " <> show v
-             Left err -> fail $ "Bad value: " <> show err
+        checkValue len 0
 
      --it "can add a key/value to a stream" do
-        id <- xadd cacheConn testStream AutoID $ singleton $ "test" /\ "123"
-        case id of
-             Right v  -> pure unit
-             Left err -> fail $ "Add failed: " <> show err
+        id <- xadd cacheConn testStream testId $ singleton $ "test" /\ "123"
+        checkValue id testId
 
      --it "can delete a key/value" do
         n <- xdel cacheConn testStream $ unsafePartial $ fromRight id
-        case n of
-             Right 1  -> pure unit
-             Right v  -> fail $ "Deleted more than 1 entry: " <> (show v)
-             Left err -> fail $ "Delete failed: " <> show err
+        checkValue n 1
 
      --it "can read from an empty stream"
         val <- xread cacheConn Nothing [Tuple testStream firstEntryId]
-        case val of
-             Right v  -> size v `shouldEqual` 0
-             Left err -> fail $ "Read failed: " <> show err
+        checkValue (size <$> val) 0
 
      --it "can read a range of values from an empty stream" do
         val <- xrange cacheConn testStream MinID MaxID Nothing
-        case val of
-             Right v  -> length v `shouldEqual` 0
-             Left err -> fail $ "Range failed: " <> show err
+        checkValue (length <$> val) 0
 
      --it "can read a range of values in reverse from an empty stream" do
         val <- xrevrange cacheConn testStream MinID MaxID Nothing
-        case val of
-             Right v  -> length v `shouldEqual` 0
-             Left err -> fail $ "Range failed: " <> show err
+        checkValue (length <$> val) 0
 
      --it "can read the values just added" do
         _ <- xadd cacheConn testStream AutoID $ singleton $ "test" /\ "123"
@@ -144,9 +135,7 @@ streamTest cacheConn =
 
      --it "won't find an entry when all entries are acked"
         val <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testStream NewID]
-        case val of
-             Right v  -> size v `shouldEqual` 0
-             Left err -> fail $ "Read from group failed: " <> show err
+        checkValue (size <$> val) 0
 
      --it "can claim a pending entry" do
         id  <- xadd cacheConn testStream AutoID $ singleton $ "test" /\ "123"
@@ -158,21 +147,15 @@ streamTest cacheConn =
 
      --it "can delete a consumer in a group" do
         res <- xgroupDelConsumer cacheConn testStream testGroup testConsumer
-        case res of
-             Right _  -> pure unit
-             Left err -> fail $ "Group destroy failed: " <> show err
+        checkRight res
 
      --it "can set an ID on a group" do
         res <- xgroupSetId cacheConn testStream testGroup AfterLastID
-        case res of
-             Right _  -> pure unit
-             Left err -> fail $ "Group set ID failed: " <> show err
+        checkRight res
 
      --it "can destroy a consumer group" do
         res <- xgroupDestroy cacheConn testStream testGroup
-        case res of
-             Right _  -> pure unit
-             Left err -> fail $ "Group destroy failed: " <> show err
+        checkRight res
 
      -- Clean up
         _ <- del cacheConn $ NEArray.singleton testStream
