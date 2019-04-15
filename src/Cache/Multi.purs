@@ -20,6 +20,7 @@ module Cache.Multi
 
 import Cache.Types (CacheConn, SetOptions)
 import Control.Monad.Aff (Aff, attempt)
+import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Exception (Error)
 import Control.Promise (Promise, toAff)
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
@@ -31,70 +32,70 @@ import Prelude (show, ($), (<<<))
 
 foreign import data Multi :: Type
 
-foreign import newMultiJ :: CacheConn -> Multi
+foreign import newMultiJ :: forall e. CacheConn -> Eff e Multi
 
-foreign import setMultiJ :: String -> String -> String -> String -> Multi -> Multi
-foreign import getMultiJ ::  String -> Multi -> Multi
-foreign import delMultiJ :: Array String -> Multi -> Multi
-foreign import expireMultiJ :: String -> String -> Multi -> Multi
-foreign import incrMultiJ ::  String -> Multi -> Multi
-foreign import hsetMultiJ :: String -> String -> String -> Multi -> Multi
-foreign import hgetMultiJ :: String -> String -> Multi -> Multi
-foreign import publishMultiJ :: String -> String -> Multi -> Multi
-foreign import subscribeMultiJ :: String -> Multi -> Multi
-foreign import rpopMultiJ :: String -> Multi -> Multi
-foreign import rpushMultiJ :: String -> String -> Multi -> Multi
-foreign import lpopMultiJ :: String -> Multi -> Multi
-foreign import lpushMultiJ :: String -> String -> Multi -> Multi
-foreign import lindexMultiJ :: String -> Int -> Multi -> Multi
+foreign import setMultiJ :: forall e. String -> String -> String -> String -> Multi -> Eff e Multi
+foreign import getMultiJ :: forall e.  String -> Multi -> Eff e Multi
+foreign import delMultiJ :: forall e. Array String -> Multi -> Eff e Multi
+foreign import expireMultiJ :: forall e. String -> String -> Multi -> Eff e Multi
+foreign import incrMultiJ :: forall e.  String -> Multi -> Eff e Multi
+foreign import hsetMultiJ :: forall e. String -> String -> String -> Multi -> Eff e Multi
+foreign import hgetMultiJ :: forall e. String -> String -> Multi -> Eff e Multi
+foreign import publishMultiJ :: forall e. String -> String -> Multi -> Eff e Multi
+foreign import subscribeMultiJ :: forall e. String -> Multi -> Eff e Multi
+foreign import rpopMultiJ :: forall e. String -> Multi -> Eff e Multi
+foreign import rpushMultiJ :: forall e. String -> String -> Multi -> Eff e Multi
+foreign import lpopMultiJ :: forall e. String -> Multi -> Eff e Multi
+foreign import lpushMultiJ :: forall e. String -> String -> Multi -> Eff e Multi
+foreign import lindexMultiJ :: forall e. String -> Int -> Multi -> Eff e Multi
 foreign import execMultiJ :: Multi -> Promise (Array String)
 
-newMulti :: CacheConn -> Multi
+newMulti :: forall e. CacheConn -> Eff e Multi
 newMulti = newMultiJ
 
 execMulti :: forall e. Multi -> Aff e (Either Error (Array String))
 execMulti = attempt <<< toAff <<< execMultiJ
 
-setMulti :: String -> String -> Maybe Milliseconds -> SetOptions -> Multi -> Multi
+setMulti :: forall e. String -> String -> Maybe Milliseconds -> SetOptions -> Multi -> Eff e Multi
 setMulti key value mExp opts = setMultiJ key value (maybe "" msToString mExp) (show opts)
   where
         msToString (Milliseconds v) = show $ round v
 
-getMulti :: String -> Multi -> Multi
+getMulti :: forall e. String -> Multi -> Eff e Multi
 getMulti val = getMultiJ val
 
-delMulti :: NonEmptyArray String -> Multi -> Multi
+delMulti :: forall e. NonEmptyArray String -> Multi -> Eff e Multi
 delMulti keys = delMultiJ (toArray keys)
 
-expireMulti :: String -> String -> Multi -> Multi
+expireMulti :: forall e. String -> String -> Multi -> Eff e Multi
 expireMulti key ttl = expireMultiJ key ttl
 
-incrMulti :: String -> Multi -> Multi
+incrMulti :: forall e. String -> Multi -> Eff e Multi
 incrMulti key = incrMultiJ key
 
-hsetMulti :: String -> String -> String -> Multi -> Multi
+hsetMulti :: forall e. String -> String -> String -> Multi -> Eff e Multi
 hsetMulti key field val = hsetMultiJ key field val
 
-hgetMulti :: String -> String -> Multi -> Multi
+hgetMulti :: forall e. String -> String -> Multi -> Eff e Multi
 hgetMulti key field = hgetMultiJ key field
 
-publishMulti :: String -> String -> Multi -> Multi
+publishMulti :: forall e. String -> String -> Multi -> Eff e Multi
 publishMulti channel message = publishMultiJ channel message
 
-subscribeMulti :: String -> Multi -> Multi
+subscribeMulti :: forall e. String -> Multi -> Eff e Multi
 subscribeMulti channel = subscribeMultiJ channel
 
-rpopMulti :: String -> Multi -> Multi
+rpopMulti :: forall e. String -> Multi -> Eff e Multi
 rpopMulti listName = rpopMultiJ listName
 
-rpushMulti :: String -> String -> Multi -> Multi
+rpushMulti :: forall e. String -> String -> Multi -> Eff e Multi
 rpushMulti listName value = rpushMultiJ listName value
 
-lpopMulti :: String -> Multi -> Multi
+lpopMulti :: forall e. String -> Multi -> Eff e Multi
 lpopMulti listName = lpopMultiJ listName
 
-lpushMulti :: String -> String -> Multi -> Multi
+lpushMulti :: forall e. String -> String -> Multi -> Eff e Multi
 lpushMulti listName value = lpushMultiJ listName value
 
-lindexMulti :: String -> Int -> Multi -> Multi
+lindexMulti :: forall e. String -> Int -> Multi -> Eff e Multi
 lindexMulti listName index = lindexMultiJ listName index

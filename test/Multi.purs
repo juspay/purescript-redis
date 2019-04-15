@@ -4,6 +4,7 @@ import Prelude
 
 import Cache (CacheConn, SetOptions(..))
 import Cache.Multi (execMulti, getMulti, hgetMulti, hsetMulti, newMulti, setMulti)
+import Control.Monad.Eff.Class (liftEff)
 import Data.Array (index)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
@@ -14,11 +15,12 @@ multiTest :: CacheConn -> Spec _ Unit
 multiTest cacheConn =
   describe "Multi" do
      it "works" do
-        let multi = newMulti cacheConn
-                  # setMulti "mykey" "myvalue" Nothing NoOptions
-                  # getMulti "mykey"
-                  # hsetMulti "myhash" "firstKey" "100"
-                  # hgetMulti "myhash" "firstKey"
+        multi <- liftEff $
+           newMulti cacheConn
+           >>= setMulti "mykey" "myvalue" Nothing NoOptions
+           >>= getMulti "mykey"
+           >>= hsetMulti "myhash" "firstKey" "100"
+           >>= hgetMulti "myhash" "firstKey"
         {-- val <- C.setKeyMulti "tt" "100" multi >>= C.setexKeyMulti "testing" "200" "1000" >>= C.incrMulti "testing" >>= C.getKeyMulti "tt" --}
         val <- execMulti multi
         checkValue val 1 "myvalue"

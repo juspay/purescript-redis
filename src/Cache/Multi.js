@@ -23,8 +23,10 @@
 * along with this program. If not, see <https://www.gnu.org/licenses/agpl.html>.
 */
 
-exports["newMultiJ"] = function(client){
-  return client.multi();
+exports["newMultiJ"] = function(client) {
+  return function() {
+    return client.multi();
+  }
 }
 
 exports["setMultiJ"] = function(key) {
@@ -32,118 +34,146 @@ exports["setMultiJ"] = function(key) {
     return function (px) {
       return function (options) {
         return function(multi) {
-          var allArgs = [key, value];
+          return function() {
+            var allArgs = [key, value];
 
-          if (px != "") {
-            allArgs.push("PX");
-            allArgs.push(px);
+            if (px != "") {
+              allArgs.push("PX");
+              allArgs.push(px);
+            }
+
+            if (options != "") {
+              allArgs.push(options);
+            }
+
+            return multi.set(allArgs)
           }
-
-          if (options != "") {
-            allArgs.push(options);
-          }
-
-          return multi.set(allArgs)
         }
       }
     }
   }
 }
 
-exports["getMultiJ"] = function(key){
-  return function(multi){
-    return multi.get(key);
-  }
-}
-
-exports["delMultiJ"] = function(key){
-  return function(multi){
-    return multi.del(key);
-  }
-}
-
-exports["expireMultiJ"] = function(key){
-  return function(ttl){
-    return function(multi){
-      return multi.expire(key,ttl);
+exports["getMultiJ"] = function(key) {
+  return function(multi) {
+    return function() {
+      return multi.get(key);
     }
   }
 }
 
-exports["incrMultiJ"] = function(key){
-  return function(multi){
-    return multi.incr(key);
+exports["delMultiJ"] = function(key) {
+  return function(multi) {
+    return function() {
+      return multi.del(key);
+    }
   }
 }
 
-exports["hsetMultiJ"] = function(key){
-  return function(field){
-    return function(value){
-      return function(multi){
-        return multi.hset(key, field, value);
+exports["expireMultiJ"] = function(key) {
+  return function(ttl) {
+    return function(multi) {
+      return function() {
+        return multi.expire(key,ttl);
       }
     }
   }
 }
 
-exports["hgetMultiJ"] = function(key){
-  return function(field){
-    return function(multi){
-      return multi.hget(key, field);
+exports["incrMultiJ"] = function(key) {
+  return function(multi) {
+    return function() {
+      return multi.incr(key);
     }
   }
 }
 
-exports["publishMultiJ"] = function(channel){
-  return function(message){
-    return function(multi){
-      return multi.publish(channel,message);
+exports["hsetMultiJ"] = function(key) {
+  return function(field) {
+    return function(value) {
+      return function(multi) {
+        return function() {
+          return multi.hset(key, field, value);
+        }
+      }
     }
   }
 }
 
-exports["subscribeMultiJ"] = function(channel){
-  return function(multi){
-    return multi.subscribe(channel);
-  }
-}
-
-exports["rpopMultiJ"] = function(listName){
-  return function(value){
-    return function(multi){
-      return multi.rpop(listName,value);
+exports["hgetMultiJ"] = function(key) {
+  return function(field) {
+    return function(multi) {
+      return function() {
+        return multi.hget(key, field);
+      }
     }
   }
 }
 
-exports["rpushMultiJ"] = function(listName){
-  return function(value){
-    return function(multi){
-      return multi.rpush(listName,value);
+exports["publishMultiJ"] = function(channel) {
+  return function(message) {
+    return function(multi) {
+      return function() {
+        return multi.publish(channel,message);
+      }
     }
   }
 }
 
-exports["lpopMultiJ"] = function(listName){
-  return function(multi){
-    return multi.lpop(listName);
-  }
-}
-
-exports["lpushMultiJ"] = function(listName){
-  return function(multi){
-    return multi.lpush(listName);
-  }
-}
-
-exports["lindexMultiJ"] = function(listName){
-  return function(value){
-    return function(multi){
-      return multi.lindex(listName, value);
+exports["subscribeMultiJ"] = function(channel) {
+  return function(multi) {
+    return function() {
+      return multi.subscribe(channel);
     }
   }
 }
 
-exports["execMultiJ"] = function(multi){
+exports["rpopMultiJ"] = function(listName) {
+  return function(value) {
+    return function(multi) {
+      return function() {
+        return multi.rpop(listName,value);
+      }
+    }
+  }
+}
+
+exports["rpushMultiJ"] = function(listName) {
+  return function(value) {
+    return function(multi) {
+      return function() {
+        return multi.rpush(listName,value);
+      }
+    }
+  }
+}
+
+exports["lpopMultiJ"] = function(listName) {
+  return function(multi) {
+    return function() {
+      return multi.lpop(listName);
+    }
+  }
+}
+
+exports["lpushMultiJ"] = function(listName) {
+  return function(multi) {
+    return function() {
+      return multi.lpush(listName);
+    }
+  }
+}
+
+exports["lindexMultiJ"] = function(listName) {
+  return function(value) {
+    return function(multi) {
+      return function() {
+        return multi.lindex(listName, value);
+      }
+    }
+  }
+}
+
+exports["execMultiJ"] = function(multi) {
   return multi.execAsync();
 }
