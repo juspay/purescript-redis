@@ -27,7 +27,8 @@ import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either)
 import Data.Int (round)
 import Data.Maybe (Maybe, maybe)
-import Data.Time.Duration (Milliseconds(..))
+import Data.Newtype (unwrap)
+import Data.Time.Duration (Milliseconds(..), Seconds)
 import Prelude (show, ($), (<<<))
 
 foreign import data Multi :: Type
@@ -37,7 +38,7 @@ foreign import newMultiJ :: forall e. CacheConn -> Eff e Multi
 foreign import setMultiJ :: forall e. String -> String -> String -> String -> Multi -> Eff e Multi
 foreign import getMultiJ :: forall e.  String -> Multi -> Eff e Multi
 foreign import delMultiJ :: forall e. Array String -> Multi -> Eff e Multi
-foreign import expireMultiJ :: forall e. String -> String -> Multi -> Eff e Multi
+foreign import expireMultiJ :: forall e. String -> Int -> Multi -> Eff e Multi
 foreign import incrMultiJ :: forall e.  String -> Multi -> Eff e Multi
 foreign import hsetMultiJ :: forall e. String -> String -> String -> Multi -> Eff e Multi
 foreign import hgetMultiJ :: forall e. String -> String -> Multi -> Eff e Multi
@@ -67,8 +68,8 @@ getMulti val = getMultiJ val
 delMulti :: forall e. NonEmptyArray String -> Multi -> Eff e Multi
 delMulti keys = delMultiJ (toArray keys)
 
-expireMulti :: forall e. String -> String -> Multi -> Eff e Multi
-expireMulti key ttl = expireMultiJ key ttl
+expireMulti :: forall e. String -> Seconds -> Multi -> Eff e Multi
+expireMulti key ttl = expireMultiJ key (round <<< unwrap $ ttl)
 
 incrMulti :: forall e. String -> Multi -> Eff e Multi
 incrMulti key = incrMultiJ key
