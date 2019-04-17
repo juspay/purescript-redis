@@ -30,6 +30,9 @@ listTest cacheConn =
         v3 <- lpop cacheConn testKey
         checkValue v3 Nothing
 
+        v4 <- lpush cacheConn testKey "bye"
+        checkValue v4 1
+
         l <- lpush cacheConn "DBACTIONS" "SELCT * FROM CUSTOMERS;"
         pop <- rpop cacheConn "DBACTIONS"
         peek <- lindex cacheConn "DBACTIONS" 0

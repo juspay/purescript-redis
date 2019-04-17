@@ -37,8 +37,8 @@ exports["lpopJ"] = function(client, listname) {
   return client.lpopAsync(listname);
 }
 
-exports["lpushJ"] = function(client, listname) {
-  return client.lpushAsync(listname);
+exports["lpushJ"] = function(client, listname, value) {
+  return client.lpushAsync(listname, value);
 }
 
 exports["lindexJ"] = function(client, listname, index) {
