@@ -25,12 +25,11 @@ import Control.Monad.Eff.Exception (Error, error)
 import Control.Monad.Except (Except, runExcept)
 import Control.MonadPlus ((>>=))
 import Control.Promise (toAff)
-import Data.Array (filter, length, range, singleton, zip, (!!), (:))
+import Data.Array (filter, length, range, zip, (!!))
 import Data.Bifunctor (lmap)
 import Data.BigInt (BigInt)
 import Data.BigInt (fromInt, fromString, shl) as BigInt
 import Data.Either (Either(..))
-import Data.Foldable (foldMap)
 import Data.Foreign (F, Foreign, isNull, readArray, readString)
 import Data.Function.Uncurried (runFn2, runFn3, runFn4, runFn5, runFn7)
 import Data.Int (even, odd)
@@ -76,10 +75,8 @@ xadd _ _ MinID       _ = pure $ Left $ error "XADD must take a concrete entry ID
 xadd _ _ MaxID       _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
 xadd _ _ NewID       _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
 xadd cacheConn key entryId args = do
-  res <- attempt <<< toAff $ runFn4 xaddJ cacheConn key (show entryId) $ foldMap tupleToArray args
+  res <- attempt <<< toAff $ runFn4 xaddJ cacheConn key (show entryId) $ itemsToArray args
   pure $ forceFromString  <$> res
-  where
-        tupleToArray (Tuple a b) = a : singleton b
 
 xdel :: forall e. CacheConn -> String -> EntryID -> CacheAff e (Either Error Int)
 xdel cacheConn key entryId = attempt <<< toAff $ runFn3 xdelJ cacheConn key (show entryId)

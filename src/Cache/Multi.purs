@@ -16,22 +16,31 @@ module Cache.Multi
   , rpushMulti
   , setMulti
   , subscribeMulti
+  , xaddMulti
+  , xdelMulti
+  , xlenMulti
+  , xrangeMulti
+  , xreadMulti
+  , xrevrangeMulti
+  , xtrimMulti
   ) where
 
-import Cache.Types (CacheConn, SetOptions)
+import Cache.Stream.Internal (itemsToArray, xaddJ, xdelJ, xlenJ, xrangeJ, xreadJ, xtrimJ)
+import Cache.Types (CacheConn, EntryID(..), Item, SetOptions, TrimStrategy)
 import Control.Monad.Aff (Aff, attempt)
 import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Exception (Error)
+import Control.Monad.Eff.Exception (Error, error)
 import Control.Promise (Promise, toAff)
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
-import Data.Either (Either)
+import Data.Either (Either(..))
 import Data.Foreign (Foreign)
 import Data.Function.Uncurried (Fn2, Fn3, Fn4, Fn5, runFn2, runFn3, runFn4, runFn5)
 import Data.Int (round)
-import Data.Maybe (Maybe, maybe)
+import Data.Maybe (Maybe, fromMaybe, maybe)
 import Data.Newtype (unwrap)
 import Data.Time.Duration (Milliseconds(..), Seconds)
-import Prelude (show, ($), (<<<))
+import Data.Tuple (Tuple, fst, snd)
+import Prelude (map, pure, show, ($), (<$>), (<<<))
 
 foreign import data Multi :: Type
 
@@ -102,3 +111,32 @@ lpushMulti listName value = runFn3 lpushMultiJ listName value
 
 lindexMulti :: forall e. String -> Int -> Multi -> Eff e Multi
 lindexMulti listName index = runFn3 lindexMultiJ listName index
+
+xaddMulti :: forall e. String -> EntryID -> Array Item -> Multi -> Eff e (Either Error Multi)
+xaddMulti _ AfterLastID _ _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
+xaddMulti _ MinID       _ _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
+xaddMulti _ MaxID       _ _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
+xaddMulti _ NewID       _ _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
+xaddMulti key entryId args multi = map Right $ runFn4 xaddJ multi key (show entryId) $ itemsToArray args
+
+xdelMulti :: forall e. String -> EntryID -> Multi -> Eff e Multi
+xdelMulti key entryId multi = runFn3 xdelJ multi key (show entryId)
+
+xlenMulti :: forall e. String -> Multi -> Eff e Multi
+xlenMulti key multi = runFn2 xlenJ multi key
+
+xrangeMulti :: forall e. String -> EntryID -> EntryID -> Maybe Int -> Multi -> Eff e Multi
+xrangeMulti stream start end mCount multi = runFn5 xrangeJ multi stream (show start) (show end) (fromMaybe 0 mCount)
+
+xrevrangeMulti :: forall e. String -> EntryID -> EntryID -> Maybe Int -> Multi -> Eff e Multi
+xrevrangeMulti stream start end mCount multi = runFn5 xrangeJ multi stream (show start) (show end) (fromMaybe 0 mCount)
+
+xreadMulti :: forall e. Maybe Int -> Array (Tuple String EntryID) -> Multi -> Eff e Multi
+xreadMulti mCount streamIds multi = do
+  let count   = fromMaybe 0 mCount
+      streams = fst <$> streamIds
+      ids     = show <<< snd <$> streamIds
+  runFn4 xreadJ multi count streams ids
+
+xtrimMulti :: forall e. String -> TrimStrategy -> Boolean -> Int -> Multi -> Eff e Multi
+xtrimMulti key strategy approx len multi = runFn5 xtrimJ multi key (show strategy) approx len
