@@ -1,9 +1,5 @@
 module Cache.Stream
-  ( Entry(..)
-  , EntryID(AutoID, AfterLastID, MaxID, MinID, NewID)
-  , Item
-  , TrimStrategy(..)
-  , firstEntryId
+  ( firstEntryId
   , newEntryId
   , xack
   , xadd
@@ -22,22 +18,21 @@ module Cache.Stream
   ) where
 
 import Cache.Stream.Internal
-import Cache.Types (CacheConn, CacheAff)
+
+import Cache.Types (CacheAff, CacheConn, Entry(..), EntryID(..), Item, TrimStrategy)
 import Control.Monad.Aff (attempt)
 import Control.Monad.Eff.Exception (Error, error)
 import Control.Monad.Except (Except, runExcept)
 import Control.MonadPlus ((>>=))
-import Control.Promise ( toAff)
+import Control.Promise (toAff)
 import Data.Array (filter, length, range, singleton, zip, (!!), (:))
 import Data.Bifunctor (lmap)
-import Data.BigInt (BigInt, toString)
+import Data.BigInt (BigInt)
 import Data.BigInt (fromInt, fromString, shl) as BigInt
 import Data.Either (Either(..))
 import Data.Foldable (foldMap)
 import Data.Foreign (F, Foreign, isNull, readArray, readString)
 import Data.Function.Uncurried (runFn2, runFn3, runFn4, runFn5, runFn7)
-import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Eq (genericEq)
 import Data.Int (even, odd)
 import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Data.StrMap (StrMap, empty, fromFoldable)
@@ -46,11 +41,9 @@ import Data.String.CodePoints (split)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..), fst, snd)
 import Partial.Unsafe (unsafePartial)
-import Prelude (class Eq, class Show, Unit, bind, map, pure, show, ($), (&&), (<), (<$>), (<*>), (<<<), (<>), (==), (>=), (>>>))
+import Prelude (class Show, Unit, bind, map, pure, show, ($), (&&), (<), (<$>), (<*>), (<<<), (<>), (==), (>=), (>>>))
 
 -- Streams API
-
-type Item = Tuple String String
 
 bigZero :: BigInt
 bigZero = BigInt.fromInt 0
@@ -61,33 +54,11 @@ filter64bit n = if n >= bigZero && n < uint64Max then Just n else Nothing
   where
         uint64Max     = BigInt.shl (BigInt.fromInt 1) 64.0
 
-data EntryID = EntryID BigInt BigInt
-             | AutoID
-             | AfterLastID
-             | MinID
-             | MaxID
-             | NewID
-
-derive instance genericEntryID :: Generic EntryID _
-instance eqEntryID :: Eq EntryID where
-    eq = genericEq
-
-data Entry = Entry EntryID (Array Item)
-
 newEntryId :: BigInt -> BigInt -> Maybe EntryID
 newEntryId ms seq = EntryID <$> filter64bit ms <*> filter64bit seq
 
 firstEntryId :: EntryID
 firstEntryId = EntryID bigZero bigZero
-
-instance showEntryID :: Show EntryID where
-  show :: EntryID -> String
-  show (EntryID ms seq) = toString ms <> "-" <> toString seq
-  show (AutoID        ) = "*"
-  show (AfterLastID   ) = "$"
-  show (MinID         ) = "-"
-  show (MaxID         ) = "+"
-  show (NewID         ) = ">"
 
 fromString :: String -> Maybe EntryID
 fromString s =
@@ -146,11 +117,6 @@ xread cacheConn mCount streamIds = do
           arrStreams    <- parseWithError $ readArray response
           streamEntries <- sequence $ readStreamEntries <$> arrStreams
           Right $ fromFoldable streamEntries
-
-data TrimStrategy = Maxlen
-
-instance showTrimStrategy :: Show TrimStrategy where
-  show Maxlen = "MAXLEN"
 
 xtrim :: forall e. CacheConn -> String -> TrimStrategy -> Boolean -> Int -> CacheAff e (Either Error Int)
 xtrim cacheConn key strategy approx len = attempt <<< toAff $ runFn5 xtrimJ cacheConn key (show strategy) approx len

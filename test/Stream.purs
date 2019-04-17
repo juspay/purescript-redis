@@ -2,7 +2,8 @@ module Test.Stream where
 
 import Cache (CacheConn, del)
 import Cache.Internal (checkRight, checkValue)
-import Cache.Stream (Entry(..), EntryID(..), TrimStrategy(..), firstEntryId, newEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
+import Cache.Stream (firstEntryId, newEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
+import Cache.Types (Entry(..), EntryID(..), TrimStrategy(..))
 import Data.Array (index, length, singleton, (!!))
 import Data.Array.NonEmpty (singleton) as NEArray
 import Data.BigInt (fromInt)
