@@ -23,6 +23,11 @@ hashTest cacheConn =
         checkValue v0 true
         checkValue v1 (Just "1")
 
+        v2 <- hget cacheConn "does-not-exist" "foo"
+        checkValue v2 Nothing
+        v3 <- hget cacheConn testKey "bar"
+        checkValue v3 Nothing
+
         -- Clean up
         _  <- del cacheConn $ singleton testKey
         pure unit
