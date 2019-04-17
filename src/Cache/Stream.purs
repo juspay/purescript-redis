@@ -21,12 +21,13 @@ module Cache.Stream
   , xtrim
   ) where
 
+import Cache.Stream.Internal
 import Cache.Types (CacheConn, CacheAff)
 import Control.Monad.Aff (attempt)
 import Control.Monad.Eff.Exception (Error, error)
 import Control.Monad.Except (Except, runExcept)
 import Control.MonadPlus ((>>=))
-import Control.Promise (Promise, toAff)
+import Control.Promise ( toAff)
 import Data.Array (filter, length, range, singleton, zip, (!!), (:))
 import Data.Bifunctor (lmap)
 import Data.BigInt (BigInt, toString)
@@ -34,7 +35,7 @@ import Data.BigInt (fromInt, fromString, shl) as BigInt
 import Data.Either (Either(..))
 import Data.Foldable (foldMap)
 import Data.Foreign (F, Foreign, isNull, readArray, readString)
-import Data.Function.Uncurried (Fn2, Fn3, Fn4, Fn5, Fn7, runFn2, runFn3, runFn4, runFn5, runFn7)
+import Data.Function.Uncurried (runFn2, runFn3, runFn4, runFn5, runFn7)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Eq (genericEq)
 import Data.Int (even, odd)
@@ -98,8 +99,6 @@ fromString s =
       then EntryID <$> ms <*> seq
       else Nothing
 
-foreign import xaddJ :: Fn4 CacheConn String String (Array String) (Promise String)
-
 xadd :: forall e. CacheConn -> String -> EntryID -> Array Item -> CacheAff e (Either Error EntryID)
 xadd _ _ AfterLastID _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
 xadd _ _ MinID       _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
@@ -111,22 +110,14 @@ xadd cacheConn key entryId args = do
   where
         tupleToArray (Tuple a b) = a : singleton b
 
-foreign import xdelJ :: Fn3 CacheConn String String (Promise Int)
-
 xdel :: forall e. CacheConn -> String -> EntryID -> CacheAff e (Either Error Int)
 xdel cacheConn key entryId = attempt <<< toAff $ runFn3 xdelJ cacheConn key (show entryId)
 
 -- FIXME: this and all Ints should actually be 64-bit (instead of the current 32-bit)
-foreign import xlenJ :: Fn2 CacheConn String (Promise Int)
-
 -- Note that the API does not distinguish between a non-existing key and an
 -- empty stream
 xlen :: forall e. CacheConn -> String -> CacheAff e (Either Error Int)
 xlen cacheConn key = attempt <<< toAff $ runFn2 xlenJ cacheConn key
-
--- The return value is of the form:
--- [ [[entry_id, [key1, val1, key2, val2]], [entry_id, [...]]] ]
-foreign import xrangeJ :: Fn5 CacheConn String String String Int (Promise (Array Foreign))
 
 xrange :: forall e. CacheConn -> String -> EntryID -> EntryID -> Maybe Int -> CacheAff e (Either Error (Array Entry))
 xrange cacheConn stream start end mCount = do
@@ -134,19 +125,11 @@ xrange cacheConn stream start end mCount = do
   res <- attempt <<< toAff $ runFn5 xrangeJ cacheConn stream (show start) (show end) count
   pure $ res >>= readEntries
 
--- The return value is of the form:
--- [ [[entry_id, [key1, val1, key2, val2]], [entry_id, [...]]] ]
-foreign import xrevrangeJ :: Fn5 CacheConn String String String Int (Promise (Array Foreign))
-
 xrevrange :: forall e. CacheConn -> String -> EntryID -> EntryID -> Maybe Int -> CacheAff e (Either Error (Array Entry))
 xrevrange cacheConn stream start end mCount = do
   let count = fromMaybe 0 mCount
   res <- attempt <<< toAff $ runFn5 xrangeJ cacheConn stream (show start) (show end) count
   pure $ res >>= readEntries
-
--- The return value is of the form:
--- [ [stream_name, [[entry_id, [key1, val1, key2, val2]], [entry_id, [...]]]], [stream_name, [...]] ]
-foreign import xreadJ :: Fn4 CacheConn Int (Array String) (Array String) (Promise Foreign)
 
 xread :: forall e. CacheConn -> Maybe Int -> Array (Tuple String EntryID) -> CacheAff e (Either Error (StrMap (Array Entry)))
 xread cacheConn mCount streamIds = do
@@ -169,14 +152,10 @@ data TrimStrategy = Maxlen
 instance showTrimStrategy :: Show TrimStrategy where
   show Maxlen = "MAXLEN"
 
-foreign import xtrimJ :: Fn5 CacheConn String String Boolean Int (Promise Int)
-
 xtrim :: forall e. CacheConn -> String -> TrimStrategy -> Boolean -> Int -> CacheAff e (Either Error Int)
 xtrim cacheConn key strategy approx len = attempt <<< toAff $ runFn5 xtrimJ cacheConn key (show strategy) approx len
 
 -- Consumer group API
-
-foreign import xgroupCreateJ :: Fn4 CacheConn String String String (Promise Unit)
 
 xgroupCreate :: forall e. CacheConn -> String -> String -> EntryID -> CacheAff e (Either Error Unit)
 xgroupCreate _ _ _ AutoID = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
@@ -185,17 +164,11 @@ xgroupCreate _ _ _ MaxID  = pure $ Left $ error "XCREATE must take a concrete ID
 xgroupCreate _ _ _ NewID  = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
 xgroupCreate cacheConn key groupName entryId = attempt <<< toAff $ runFn4 xgroupCreateJ cacheConn key groupName (show entryId)
 
-foreign import xgroupDestroyJ :: Fn3 CacheConn String String (Promise Unit)
-
 xgroupDestroy :: forall e. CacheConn -> String -> String -> CacheAff e (Either Error Unit)
 xgroupDestroy cacheConn key groupName = attempt <<< toAff $ runFn3 xgroupDestroyJ cacheConn key groupName
 
-foreign import xgroupDelConsumerJ :: Fn4 CacheConn String String String (Promise Unit)
-
 xgroupDelConsumer :: forall e. CacheConn -> String -> String -> String -> CacheAff e (Either Error Unit)
 xgroupDelConsumer cacheConn key groupName consumerName = attempt <<< toAff $ runFn4 xgroupDelConsumerJ cacheConn key groupName consumerName
-
-foreign import xgroupSetIdJ :: Fn4 CacheConn String String String (Promise Unit)
 
 xgroupSetId :: forall e. CacheConn -> String -> String -> EntryID -> CacheAff e (Either Error Unit)
 xgroupSetId _ _ _ AutoID = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
@@ -203,8 +176,6 @@ xgroupSetId _ _ _ MinID  = pure $ Left $ error "XGROUP SETID must take a concret
 xgroupSetId _ _ _ MaxID  = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
 xgroupSetId _ _ _ NewID  = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
 xgroupSetId cacheConn key groupName entryId = attempt <<< toAff $ runFn4 xgroupSetIdJ cacheConn key groupName (show entryId)
-
-foreign import xreadGroupJ :: Fn7 CacheConn String String Int Boolean (Array String) (Array String) (Promise Foreign)
 
 xreadGroup :: forall e. CacheConn -> String -> String -> Maybe Int -> Boolean -> Array (Tuple String EntryID) -> CacheAff e (Either Error (StrMap (Array Entry)))
 xreadGroup cacheConn groupName consumerName mCount noAck streamIds = do
@@ -222,12 +193,8 @@ xreadGroup cacheConn groupName consumerName mCount noAck streamIds = do
           streamEntries <- sequence $ readStreamEntries <$> arrStreams
           Right $ fromFoldable streamEntries
 
-foreign import xackJ :: Fn4 CacheConn String String (Array String) (Promise Int)
-
 xack :: forall e. CacheConn -> String -> String -> Array EntryID -> CacheAff e (Either Error Int)
 xack cacheConn key group entryIds = attempt <<< toAff $ runFn4 xackJ cacheConn key group (show <$> entryIds)
-
-foreign import xclaimJ :: Fn7 CacheConn String String String Int (Array String) Boolean (Promise (Array Foreign))
 
 xclaim :: forall e. CacheConn -> String -> String -> String -> Int -> Array EntryID -> Boolean -> CacheAff e (Either Error (Array Entry))
 xclaim cacheConn key groupName consumerName idleTimeMs entryIds force = do
