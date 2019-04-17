@@ -29,84 +29,56 @@ exports["newMultiJ"] = function(client) {
   }
 }
 
-exports["setMultiJ"] = function(key) {
-  return function (value) {
-    return function (px) {
-      return function (options) {
-        return function(multi) {
-          return function() {
-            var allArgs = [key, value];
+exports["setMultiJ"] = function(key, value, px, options, multi) {
+  return function() {
+    var allArgs = [key, value];
 
-            if (px != "") {
-              allArgs.push("PX");
-              allArgs.push(px);
-            }
-
-            if (options != "") {
-              allArgs.push(options);
-            }
-
-            return multi.set(allArgs)
-          }
-        }
-      }
+    if (px != "") {
+      allArgs.push("PX");
+      allArgs.push(px);
     }
+
+    if (options != "") {
+      allArgs.push(options);
+    }
+
+    return multi.set(allArgs)
   }
 }
 
-exports["getMultiJ"] = function(key) {
-  return function(multi) {
-    return function() {
-      return multi.get(key);
-    }
+exports["getMultiJ"] = function(key, multi) {
+  return function() {
+    return multi.get(key);
   }
 }
 
-exports["delMultiJ"] = function(key) {
-  return function(multi) {
-    return function() {
-      return multi.del(key);
-    }
+exports["delMultiJ"] = function(key, multi) {
+  return function() {
+    return multi.del(key);
   }
 }
 
-exports["expireMultiJ"] = function(key) {
-  return function(ttl) {
-    return function(multi) {
-      return function() {
-        return multi.expire(key,ttl);
-      }
-    }
+exports["expireMultiJ"] = function(key, ttl, multi) {
+  return function() {
+    return multi.expire(key,ttl);
   }
 }
 
-exports["incrMultiJ"] = function(key) {
-  return function(multi) {
-    return function() {
-      return multi.incr(key);
-    }
+exports["incrMultiJ"] = function(key, multi) {
+  return function() {
+    return multi.incr(key);
   }
 }
 
-exports["hsetMultiJ"] = function(key) {
-  return function(field) {
-    return function(value) {
-      return function(multi) {
-        return function() {
-          return multi.hset(key, field, value);
-        }
-      }
-    }
+exports["hsetMultiJ"] = function(key, field, value, multi) {
+  return function() {
+    return multi.hset(key, field, value);
   }
 }
 
-exports["hgetMultiJ"] = function(key) {
-  return function(field) {
-    return function(multi) {
-      return function() {
-        return multi.hget(key, field);
-      }
-    }
+exports["hgetMultiJ"] = function(key, field, multi) {
+  return function() {
+    return multi.hget(key, field);
   }
 }
 
@@ -120,31 +92,21 @@ exports["publishMultiJ"] = function(channel) {
   }
 }
 
-exports["subscribeMultiJ"] = function(channel) {
-  return function(multi) {
-    return function() {
-      return multi.subscribe(channel);
-    }
+exports["subscribeMultiJ"] = function(channel, multi) {
+  return function() {
+    return multi.subscribe(channel);
   }
 }
 
-exports["rpopMultiJ"] = function(listName) {
-  return function(value) {
-    return function(multi) {
-      return function() {
-        return multi.rpop(listName,value);
-      }
-    }
+exports["rpopMultiJ"] = function(listName, value, multi) {
+  return function() {
+    return multi.rpop(listName,value);
   }
 }
 
-exports["rpushMultiJ"] = function(listName) {
-  return function(value) {
-    return function(multi) {
-      return function() {
-        return multi.rpush(listName,value);
-      }
-    }
+exports["rpushMultiJ"] = function(listName, value, multi) {
+  return function() {
+    return multi.rpush(listName,value);
   }
 }
 
@@ -156,21 +118,15 @@ exports["lpopMultiJ"] = function(listName) {
   }
 }
 
-exports["lpushMultiJ"] = function(listName) {
-  return function(multi) {
-    return function() {
-      return multi.lpush(listName);
-    }
+exports["lpushMultiJ"] = function(listName, multi) {
+  return function() {
+    return multi.lpush(listName);
   }
 }
 
-exports["lindexMultiJ"] = function(listName) {
-  return function(value) {
-    return function(multi) {
-      return function() {
-        return multi.lindex(listName, value);
-      }
-    }
+exports["lindexMultiJ"] = function(listName, value, multi) {
+  return function() {
+    return multi.lindex(listName, value);
   }
 }
 
