@@ -25,6 +25,7 @@ import Control.Monad.Eff.Exception (Error)
 import Control.Promise (Promise, toAff)
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either)
+import Data.Foreign (Foreign)
 import Data.Function.Uncurried (Fn2, Fn3, Fn4, Fn5, runFn2, runFn3, runFn4, runFn5)
 import Data.Int (round)
 import Data.Maybe (Maybe, maybe)
@@ -50,12 +51,12 @@ foreign import rpushMultiJ :: forall e. Fn3 String String Multi (Eff e Multi)
 foreign import lpopMultiJ :: forall e. Fn2 String Multi (Eff e Multi)
 foreign import lpushMultiJ :: forall e. Fn3 String String Multi (Eff e Multi)
 foreign import lindexMultiJ :: forall e. Fn3 String Int Multi (Eff e Multi)
-foreign import execMultiJ :: Multi -> Promise (Array String)
+foreign import execMultiJ :: Multi -> Promise (Array Foreign)
 
 newMulti :: forall e. CacheConn -> Eff e Multi
 newMulti = newMultiJ
 
-execMulti :: forall e. Multi -> Aff e (Either Error (Array String))
+execMulti :: forall e. Multi -> Aff e (Either Error (Array Foreign))
 execMulti = attempt <<< toAff <<< execMultiJ
 
 setMulti :: forall e. String -> String -> Maybe Milliseconds -> SetOptions -> Multi -> Eff e Multi
