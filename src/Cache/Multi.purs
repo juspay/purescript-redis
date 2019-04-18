@@ -25,7 +25,7 @@ module Cache.Multi
   , xtrimMulti
   ) where
 
-import Cache.Stream.Internal (itemsToArray, xaddJ, xdelJ, xlenJ, xrangeJ, xreadJ, xtrimJ)
+import Cache.Stream.Internal (itemsToArray, xackJ, xaddJ, xclaimJ, xdelJ, xgroupCreateJ, xgroupDelConsumerJ, xgroupDestroyJ, xgroupSetIdJ, xlenJ, xrangeJ, xreadGroupJ, xreadJ, xtrimJ)
 import Cache.Types (CacheConn, EntryID(..), Item, SetOptions, TrimStrategy)
 import Control.Monad.Aff (Aff, attempt)
 import Control.Monad.Eff (Eff)
@@ -34,7 +34,7 @@ import Control.Promise (Promise, toAff)
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either(..))
 import Data.Foreign (Foreign)
-import Data.Function.Uncurried (Fn2, Fn3, Fn4, Fn5, runFn2, runFn3, runFn4, runFn5)
+import Data.Function.Uncurried (Fn2, Fn3, Fn4, Fn5, runFn2, runFn3, runFn4, runFn5, runFn7)
 import Data.Int (round)
 import Data.Maybe (Maybe, fromMaybe, maybe)
 import Data.Newtype (unwrap)
@@ -140,3 +140,37 @@ xreadMulti mCount streamIds multi = do
 
 xtrimMulti :: forall e. String -> TrimStrategy -> Boolean -> Int -> Multi -> Eff e Multi
 xtrimMulti key strategy approx len multi = runFn5 xtrimJ multi key (show strategy) approx len
+
+xgroupCreateMulti :: forall e. String -> String -> EntryID -> Multi -> Eff e (Either Error Multi)
+xgroupCreateMulti _ _ AutoID _ = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
+xgroupCreateMulti _ _ MinID  _ = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
+xgroupCreateMulti _ _ MaxID  _ = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
+xgroupCreateMulti _ _ NewID  _ = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
+xgroupCreateMulti key groupName entryId multi = map Right $ runFn4 xgroupCreateJ multi key groupName (show entryId)
+
+xgroupDestroyMulti :: forall e. String -> String -> Multi -> Eff e Multi
+xgroupDestroyMulti key groupName multi = runFn3 xgroupDestroyJ multi key groupName
+
+xgroupDelConsumerMulti :: forall e. String -> String -> String -> Multi -> Eff e Multi
+xgroupDelConsumerMulti key groupName consumerName multi = runFn4 xgroupDelConsumerJ multi key groupName consumerName
+
+xgroupSetIdMulti :: forall e. String -> String -> EntryID -> Multi -> Eff e (Either Error Multi)
+xgroupSetIdMulti _ _ AutoID _ = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
+xgroupSetIdMulti _ _ MinID  _ = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
+xgroupSetIdMulti _ _ MaxID  _ = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
+xgroupSetIdMulti _ _ NewID  _ = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
+xgroupSetIdMulti key groupName entryId multi = map Right $ runFn4 xgroupSetIdJ multi key groupName (show entryId)
+
+xreadGroupMulti :: forall e. String -> String -> Maybe Int -> Boolean -> Array (Tuple String EntryID) -> Multi -> Eff e Multi
+xreadGroupMulti groupName consumerName mCount noAck streamIds multi = do
+  let count   = fromMaybe 0 mCount
+      streams = fst <$> streamIds
+      ids     = show <<< snd <$> streamIds
+  runFn7 xreadGroupJ multi groupName consumerName count noAck streams ids
+
+xackMulti :: forall e. String -> String -> Array EntryID -> Multi -> Eff e Multi
+xackMulti key group entryIds multi = runFn4 xackJ multi key group (show <$> entryIds)
+
+xclaimMulti :: forall e. String -> String -> String -> Int -> Array EntryID -> Boolean -> Multi -> Eff e Multi
+xclaimMulti key groupName consumerName idleTimeMs entryIds force multi =
+  runFn7 xclaimJ multi key groupName consumerName idleTimeMs (show <$> entryIds) force
