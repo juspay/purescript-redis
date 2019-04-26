@@ -1,6 +1,6 @@
 module Test.Basic where
 
-import Cache (CacheConn, SetOptions(..), del, exists, expire, get, incr, incrby, set)
+import Cache (class CacheConn, SetOptions(..), del, exists, expire, get, incr, incrby, set)
 import Cache.Internal (checkValue)
 import Control.Monad.Aff (delay)
 import Data.Array.NonEmpty (singleton, (:))
@@ -20,7 +20,7 @@ testKey1 = "test-basic-1"
 testKey2 :: String
 testKey2 = "test-basic-2"
 
-basicTest :: CacheConn -> Spec _ Unit
+basicTest :: forall a. CacheConn a => a -> Spec _ Unit
 basicTest cacheConn =
   describe "Basic" do
      it "works" do
