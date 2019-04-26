@@ -29,15 +29,15 @@
 
 // Connection/Multi, function name as string, args as an array
 function dispatch(object, func, args) {
-  if (object.constructor.name === "Multi") {
+  if (object.constructor.name === "Pipeline") {
     // The Multi object needs to provide an Eff with the actual call
     return function() {
       return object[func](args);
     };
   } else {
-    // The Connection object needs to call the corresponding *Async() function
+    // The Connection object just needs to call the corresponding function
     // which will provide a Promise object
-    return object[func + "Async"](args);
+    return object[func](args);
   }
 }
 

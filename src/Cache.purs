@@ -38,7 +38,6 @@ module Cache
  , setMessageHandler
  , socketKeepAlive
  , subscribe
- , tryAfter
  ) where
 
 import Cache.Internal (isNotZero, readStringMaybe)
@@ -69,20 +68,10 @@ db :: Option CacheConnOpts Int
 db = opt "db"
 
 socketKeepAlive :: Option CacheConnOpts Boolean
-socketKeepAlive = opt "socket_keepalive"
-
--- sentinels :: Option CacheConnOpts (Array { host :: String, port :: Int })
--- sentinels = opt "sentinels"
-
--- name :: Option CacheConnOpts String
--- name = opt "name"
-
-tryAfter :: Option CacheConnOpts Int
-tryAfter = opt "try_after"
+socketKeepAlive = opt "keepAlive"
 
 retryStrategy :: Option CacheConnOpts (CacheConnOpts -> Int)
-retryStrategy = opt "retry_strategy"
--- retryStrategy = opt "retryStrategy"
+retryStrategy = opt "retryStrategy"
 
 foreign import setJ :: Fn5 CacheConn String String String String (Promise String)
 foreign import getJ :: Fn2 CacheConn String (Promise Foreign)

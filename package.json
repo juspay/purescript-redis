@@ -19,11 +19,6 @@
   "homepage": "https://github.com/juspay/purescript-redis/README.md",
   "dependencies": {
     "big-integer": "^1.6.43",
-    "bluebird": "^3.5.1",
-    "cls-bluebird": "^2.1.0",
-    "redis": "https://github.com/NodeRedis/node_redis/#0709a35afafd50a2525e3725eb63cb67efa4fcb9"
-  },
-  "devDependencies": {
-    "cls-hooked": "^4.2.2"
+    "ioredis": "^4.9.1"
   }
 }
