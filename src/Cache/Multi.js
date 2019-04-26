@@ -131,5 +131,5 @@ exports["lindexMultiJ"] = function(listName, value, multi) {
 }
 
 exports["execMultiJ"] = function(multi) {
-  return multi.execAsync();
+  return multi.exec();
 }

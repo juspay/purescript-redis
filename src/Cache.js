@@ -25,35 +25,41 @@
 
 "use strict";
 
-// var Redis = require("ioredis");
-var redis = require("redis");
-var bluebird = require("bluebird");
+var Redis = require("ioredis");
 var env = process.env.NODE_ENV || 'DEV';
 
-bluebird.promisifyAll(redis)
-
-exports["_newCache"] = function (options) {
-  var newClient = redis.createClient(options);
-
-  newClient.on("error", errorHandler)
-
+function newClientPromise(client) {
   return new Promise(function (resolve, reject) {
-    newClient.on("ready", function () {
-      resolve(newClient);
+    client.on("ready", function () {
+      resolve(client);
     });
 
-    newClient.on("error", function (err) {
+    client.on("error", function (err) {
       reject(err);
     });
   });
+}
+
+exports["_newCache"] = function (options) {
+  var newClient = new Redis(options);
+
+  newClient.on("error", errorHandler)
+
+  return newClientPromise(newClient);
 };
 
 exports["_duplicateCache"] = function (client, options) {
+  var dupClient = null;
+
   if (options === undefined) {
-    return client.duplicateAsync();
+    dupClient = client.duplicate();
   } else {
-    return client.duplicateAsync(options);
+    dupClient = client.duplicate(options);
   }
+
+  dupClient.on("error", errorHandler)
+
+  return newClientPromise(dupClient);
 }
 
 var errorHandler = function(err) {
@@ -74,39 +80,39 @@ exports["setJ"] = function(client, key, value, px, options) {
     allArgs.push(options);
   }
 
-  return client.setAsync(allArgs)
+  return client.set(allArgs)
 }
 
 exports["getJ"] = function(client, key) {
-  return client.getAsync(key);
+  return client.get(key);
 };
 
 exports["existsJ"] = function(client, key) {
-  return client.existsAsync(key);
+  return client.exists(key);
 };
 
 exports["delJ"] = function(client, key) {
-  return client.delAsync(key);
+  return client.del(key);
 };
 
 exports["expireJ"] = function(client, key, ttl) {
-  return client.expireAsync(key, ttl);
+  return client.expire(key, ttl);
 }
 
 exports["incrJ"] = function(client, key) {
-  return client.incrAsync(key);
+  return client.incr(key);
 }
 
 exports["incrbyJ"] = function(client, key, by) {
-  return client.incrbyAsync(key, by);
+  return client.incrby(key, by);
 }
 
 exports["publishJ"] = function(client, channel, message) {
-  return client.publishAsync(channel, message);
+  return client.publish(channel, message);
 }
 
 exports["subscribeJ"] = function(client, channels) {
-  return client.subscribeAsync(channels);
+  return client.subscribe(channels);
 }
 
 exports["setMessageHandlerJ"] = function(client, handler) {

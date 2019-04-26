@@ -26,9 +26,9 @@
 "use strict";
 
 exports["hsetJ"] = function(client, key, field, value) {
-  return client.hsetAsync(key, field, value);
+  return client.hset(key, field, value);
 }
 
 exports["hgetJ"] = function(client, key, field) {
-  return client.hgetAsync(key, field);
+  return client.hget(key, field);
 }

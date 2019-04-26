@@ -26,21 +26,21 @@
 "use strict";
 
 exports["rpopJ"] = function(client, listname) {
-  return client.rpopAsync(listname);
+  return client.rpop(listname);
 }
 
 exports["rpushJ"] = function(client, listname, value) {
-  return client.rpushAsync(listname, value);
+  return client.rpush(listname, value);
 }
 
 exports["lpopJ"] = function(client, listname) {
-  return client.lpopAsync(listname);
+  return client.lpop(listname);
 }
 
 exports["lpushJ"] = function(client, listname, value) {
-  return client.lpushAsync(listname, value);
+  return client.lpush(listname, value);
 }
 
 exports["lindexJ"] = function(client, listname, index) {
-  return client.lindexAsync(listname, index);
+  return client.lindex(listname, index);
 }
