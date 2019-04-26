@@ -39,10 +39,6 @@ module Cache
  , socketKeepAlive
  , subscribe
  , tryAfter
- , zipkinEnable
- , zipkinRedis
- , zipkinServiceName
- , zipkinURL
  ) where
 
 import Cache.Internal (isNotZero, readStringMaybe)
@@ -87,18 +83,6 @@ tryAfter = opt "try_after"
 retryStrategy :: Option CacheConnOpts (CacheConnOpts -> Int)
 retryStrategy = opt "retry_strategy"
 -- retryStrategy = opt "retryStrategy"
-
-zipkinEnable :: Option CacheConnOpts String
-zipkinEnable = opt "zipkinEnable"
-
-zipkinRedis :: Option CacheConnOpts String
-zipkinRedis = opt "zipkinRedis"
-
-zipkinURL :: Option CacheConnOpts String
-zipkinURL = opt "zipkinURL"
-
-zipkinServiceName :: Option CacheConnOpts String
-zipkinServiceName = opt "zipkinServiceName"
 
 foreign import setJ :: Fn5 CacheConn String String String String (Promise Foreign)
 foreign import getJ :: Fn2 CacheConn String (Promise Foreign)

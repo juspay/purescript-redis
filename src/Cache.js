@@ -30,40 +30,10 @@ var redis = require("redis");
 var bluebird = require("bluebird");
 var env = process.env.NODE_ENV || 'DEV';
 
-var clsBluebird = require('cls-bluebird');
-var cls = require('cls-hooked');
-
-var ns = cls.getNamespace('zipkin') || cls.createNamespace('zipkin');
-clsBluebird(ns, bluebird);
-
 bluebird.promisifyAll(redis)
 
 exports["_newCache"] = function (options) {
-  // var newClient = new Redis(options);
-  var zipkinFlag = options.zipkinEnable
-  var zipkinRedisFlag = options.zipkinRedis
-  var newClient = null
-
-  if (zipkinFlag === "true" && zipkinRedisFlag === "true") {
-    var zipkin = require('zipkin')
-    var logger = require('zipkin-transport-http')
-    var CLSContext = require('zipkin-context-cls');
-    var zipkinClient = require('zipkin-instrumentation-redis')
-
-    var ctxImpl = new CLSContext()
-    var endpoint = options.zipkinURL
-    var serviceName = options.zipkinServiceName + '_redis'
-
-    var recorder = new zipkin.BatchRecorder({
-      logger: new logger.HttpLogger({
-        endpoint: endpoint + '/api/v1/spans'
-      })
-    });
-    var tracer = new zipkin.Tracer({localServiceName: serviceName, ctxImpl: ctxImpl, recorder: recorder})
-    newClient = zipkinClient(tracer, redis, options)
-  } else {
-    newClient = redis.createClient(options);
-  }
+  var newClient = redis.createClient(options);
 
   newClient.on("error", errorHandler)
 
