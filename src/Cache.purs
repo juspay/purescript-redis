@@ -41,7 +41,7 @@ module Cache
  ) where
 
 import Cache.Internal (isNotZero, readStringMaybe)
-import Cache.Types (CACHE, CacheAff, CacheConn, CacheConnOpts, CacheEff, SetOptions(..))
+import Cache.Types (class CacheConn, CACHE, CacheAff, CacheConnOpts, CacheEff, SetOptions(..), SimpleConn)
 import Control.Monad.Aff (attempt)
 import Control.Monad.Eff (Eff, kind Effect)
 import Control.Monad.Eff.Exception (Error)
@@ -73,27 +73,27 @@ socketKeepAlive = opt "keepAlive"
 retryStrategy :: Option CacheConnOpts (CacheConnOpts -> Int)
 retryStrategy = opt "retryStrategy"
 
-foreign import setJ :: Fn5 CacheConn String String String String (Promise Foreign)
-foreign import getJ :: Fn2 CacheConn String (Promise Foreign)
-foreign import existsJ :: Fn2 CacheConn String (Promise Int)
-foreign import delJ :: Fn2 CacheConn (Array String) (Promise Int)
-foreign import expireJ :: Fn3 CacheConn String Int (Promise Int)
-foreign import incrJ :: Fn2 CacheConn String (Promise Int)
-foreign import incrbyJ :: Fn3 CacheConn String Int (Promise Int)
-foreign import publishJ :: Fn3 CacheConn String String (Promise Int)
-foreign import subscribeJ :: Fn2 CacheConn (Array String) (Promise String)
-foreign import setMessageHandlerJ :: forall e eff. Fn2 CacheConn (String -> String -> Eff eff Unit) (CacheEff e Unit)
-foreign import _newCache :: Foreign -> Promise CacheConn
-foreign import _duplicateCache :: Fn2 CacheConn Foreign (Promise CacheConn)
+foreign import setJ :: forall a. Fn5 a String String String String (Promise Foreign)
+foreign import getJ :: forall a. Fn2 a String (Promise Foreign)
+foreign import existsJ :: forall a. Fn2 a String (Promise Int)
+foreign import delJ :: forall a. Fn2 a (Array String) (Promise Int)
+foreign import expireJ :: forall a. Fn3 a String Int (Promise Int)
+foreign import incrJ :: forall a. Fn2 a String (Promise Int)
+foreign import incrbyJ :: forall a. Fn3 a String Int (Promise Int)
+foreign import publishJ :: forall a. Fn3 a String String (Promise Int)
+foreign import subscribeJ :: forall a. Fn2 a (Array String) (Promise String)
+foreign import setMessageHandlerJ :: forall a e eff. Fn2 a (String -> String -> Eff eff Unit) (CacheEff e Unit)
+foreign import _newCache :: Foreign -> Promise SimpleConn
+foreign import _duplicateCache :: Fn2 SimpleConn Foreign (Promise SimpleConn)
 
-newConn :: forall e. Options CacheConnOpts -> CacheAff e (Either Error CacheConn)
+newConn :: forall e. Options CacheConnOpts -> CacheAff e (Either Error SimpleConn)
 newConn = attempt <<< toAff <<< _newCache <<< options
 
-duplicateConn :: forall e. CacheConn -> Maybe (Options CacheConnOpts) -> CacheAff e (Either Error CacheConn)
+duplicateConn :: forall e. SimpleConn -> Maybe (Options CacheConnOpts) -> CacheAff e (Either Error SimpleConn)
 duplicateConn cacheConn Nothing     = attempt <<< toAff $ runFn2 _duplicateCache cacheConn undefined
 duplicateConn cacheConn (Just opts) = attempt <<< toAff $ runFn2 _duplicateCache cacheConn (options opts)
 
-set :: forall e. CacheConn -> String -> String -> Maybe Milliseconds -> SetOptions -> CacheAff e (Either Error Boolean)
+set :: forall a e. CacheConn a => a -> String -> String -> Maybe Milliseconds -> SetOptions -> CacheAff e (Either Error Boolean)
 set cacheConn key value mExp opts =
   attempt <<< map parseSetResult <<< toAff $ runFn5 setJ cacheConn key value (maybe "" msToString mExp) (show opts)
   where
@@ -104,29 +104,29 @@ set cacheConn key value mExp opts =
                                                Just "OK" -> true  -- All good
                                                otherwise -> false -- This should not happen
 
-get :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
+get :: forall a e. CacheConn a => a -> String -> CacheAff e (Either Error (Maybe String))
 get cacheConn key = attempt <<< map readStringMaybe <<< toAff $ runFn2 getJ cacheConn key
 
-exists :: forall e. CacheConn -> String -> CacheAff e (Either Error Boolean)
+exists :: forall a e. CacheConn a => a -> String -> CacheAff e (Either Error Boolean)
 exists cacheConn = attempt <<< map isNotZero <<< toAff <<< runFn2 existsJ cacheConn
 
-del :: forall e. CacheConn -> NonEmptyArray String -> CacheAff e (Either Error Int)
+del :: forall a e. CacheConn a => a -> NonEmptyArray String -> CacheAff e (Either Error Int)
 del cacheConn keys = attempt <<< toAff $ runFn2 delJ cacheConn (toArray keys)
 
-expire :: forall e. CacheConn -> String -> Seconds -> CacheAff e (Either Error Boolean)
+expire :: forall a e. CacheConn a => a -> String -> Seconds -> CacheAff e (Either Error Boolean)
 expire cacheConn key ttl = attempt <<< map isNotZero <<< toAff $ runFn3 expireJ cacheConn key (round <<< unwrap $ ttl)
 
-incr :: forall e. CacheConn -> String -> CacheAff e (Either Error Int)
+incr :: forall a e. CacheConn a => a -> String -> CacheAff e (Either Error Int)
 incr cacheConn key = attempt <<< toAff $ runFn2 incrJ cacheConn key
 
-incrby :: forall e. CacheConn -> String -> Int -> CacheAff e (Either Error Int)
+incrby :: forall a e. CacheConn a => a -> String -> Int -> CacheAff e (Either Error Int)
 incrby cacheConn key by = attempt <<< toAff $ runFn3 incrbyJ cacheConn key by
 
-publish :: forall e. CacheConn -> String -> String -> CacheAff e (Either Error Int)
+publish :: forall a e. CacheConn a => a -> String -> String -> CacheAff e (Either Error Int)
 publish cacheConn channel message = attempt <<< toAff $ runFn3 publishJ cacheConn channel message
 
-subscribe :: forall e. CacheConn -> NonEmptyArray String -> CacheAff e (Either Error Unit)
+subscribe :: forall a e. CacheConn a => a -> NonEmptyArray String -> CacheAff e (Either Error Unit)
 subscribe cacheConn channel = attempt <<< void <<< toAff $ runFn2 subscribeJ cacheConn (toArray channel)
 
-setMessageHandler :: forall e eff. CacheConn -> (String -> String -> Eff eff Unit) -> CacheEff e Unit
+setMessageHandler :: forall a e eff. CacheConn a => a -> (String -> String -> Eff eff Unit) -> CacheEff e Unit
 setMessageHandler cacheConn f = runFn2 setMessageHandlerJ cacheConn f

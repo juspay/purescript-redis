@@ -1,6 +1,6 @@
 module Test.Hash where
 
-import Cache (CacheConn, del)
+import Cache (class CacheConn, del)
 import Cache.Hash (hget, hset)
 import Cache.Internal (checkValue)
 import Data.Array.NonEmpty (singleton)
@@ -11,7 +11,7 @@ import Test.Spec (Spec, describe, it)
 testKey :: String
 testKey = "test-hash"
 
-hashTest :: CacheConn -> Spec _ Unit
+hashTest :: forall a. CacheConn a => a -> Spec _ Unit
 hashTest cacheConn =
   describe "Hash" do
      it "works" do

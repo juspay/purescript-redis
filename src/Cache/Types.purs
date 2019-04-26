@@ -8,7 +8,18 @@ import Data.Generic.Rep.Eq (genericEq)
 import Data.Tuple (Tuple)
 import Prelude (class Eq, class Show, (<>))
 
-foreign import data CacheConn :: Type
+-- Represent a JavaScript object on which we can use standard Redis commands as
+-- functions. The intention is to represent both single-node and cluster
+-- connections as equivalent types that can be used with most functions. This
+-- doesn't work with Multi as that does not return the same value as these two
+-- types.
+class CacheConn a
+
+-- General types
+
+foreign import data SimpleConn :: Type
+
+instance simpleConnCacheConn :: CacheConn SimpleConn
 
 foreign import data CACHE :: Effect
 

@@ -2,7 +2,7 @@ module Test.Multi where
 
 import Prelude
 
-import Cache (CacheConn, SetOptions(..), get)
+import Cache (class CacheConn, SetOptions(..), get)
 import Cache.Multi (delMulti, execMulti, expireMulti, getMulti, hgetMulti, hsetMulti, newMulti, setMulti, xaddMulti, xdelMulti, xlenMulti, xrangeMulti, xreadMulti, xrevrangeMulti, xtrimMulti)
 import Cache.Stream (firstEntryId, newEntryId)
 import Cache.Types (EntryID(..), Item, TrimStrategy(..))
@@ -35,7 +35,7 @@ testItem = Tuple "mykey" "myvalue"
 testItemArr :: Array String
 testItemArr = ["mykey", "myvalue"]
 
-multiTest :: CacheConn -> Spec _ Unit
+multiTest :: forall a. CacheConn a => a -> Spec _ Unit
 multiTest cacheConn =
   describe "Multi" do
      it "works" do

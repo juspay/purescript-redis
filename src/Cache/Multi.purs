@@ -26,7 +26,7 @@ module Cache.Multi
   ) where
 
 import Cache.Stream.Internal (itemsToArray, xackJ, xaddJ, xclaimJ, xdelJ, xgroupCreateJ, xgroupDelConsumerJ, xgroupDestroyJ, xgroupSetIdJ, xlenJ, xrangeJ, xreadGroupJ, xreadJ, xtrimJ)
-import Cache.Types (CacheConn, EntryID(..), Item, SetOptions, TrimStrategy)
+import Cache.Types (class CacheConn, EntryID(..), Item, SetOptions, TrimStrategy)
 import Control.Monad.Aff (Aff, attempt)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Exception (Error, error)
@@ -45,7 +45,7 @@ import Prelude (map, not, pure, show, ($), (<$>), (<<<))
 
 foreign import data Multi :: Type
 
-foreign import newMultiJ :: forall e. CacheConn -> Eff e Multi
+foreign import newMultiJ :: forall a e. a -> Eff e Multi
 
 foreign import setMultiJ :: forall e. Fn5 String String String String Multi (Eff e Multi)
 foreign import getMultiJ :: forall e. Fn2 String Multi (Eff e Multi)
@@ -63,7 +63,7 @@ foreign import lpushMultiJ :: forall e. Fn3 String String Multi (Eff e Multi)
 foreign import lindexMultiJ :: forall e. Fn3 String Int Multi (Eff e Multi)
 foreign import execMultiJ :: Multi -> Promise (Array (Array Foreign))
 
-newMulti :: forall e. CacheConn -> Eff e Multi
+newMulti :: forall a e. CacheConn a => a -> Eff e Multi
 newMulti = newMultiJ
 
 -- execMultiJ returns an array of [err, val]. In the Multi case, we expect all
