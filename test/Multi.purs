@@ -24,16 +24,22 @@ import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail)
 
 testStream :: String
-testStream = "mystream"
+testStream = "mystream{test1}"
+
+testKey :: String
+testKey = "mykey{test1}"
+
+testHash :: String
+testHash = "myhash{test1}"
 
 testId :: EntryID
 testId = unsafePartial $ fromJust $ newEntryId (fromInt 9999999) (fromInt 0)
 
 testItem :: Item
-testItem = Tuple "mykey" "myvalue"
+testItem = Tuple testKey "myvalue"
 
 testItemArr :: Array String
-testItemArr = ["mykey", "myvalue"]
+testItemArr = [testKey, "myvalue"]
 
 multiTest :: forall a. CacheConn a => a -> Spec _ Unit
 multiTest cacheConn =
@@ -41,19 +47,19 @@ multiTest cacheConn =
      it "works" do
         multi <- liftEff $
            newMulti cacheConn
-           >>= setMulti "mykey" "myvalue" Nothing NoOptions
-           >>= getMulti "mykey"
-           >>= delMulti (singleton "mykey")
-           >>= hsetMulti "myhash" "firstKey" "100"
-           >>= hgetMulti "myhash" "firstKey"
-           >>= expireMulti "myhash" (Seconds 1.0)
+           >>= setMulti testKey "myvalue" Nothing NoOptions
+           >>= getMulti testKey
+           >>= delMulti (singleton testKey)
+           >>= hsetMulti testHash "firstKey" "100"
+           >>= hgetMulti testHash "firstKey"
+           >>= expireMulti testHash (Seconds 1.0)
         {-- val <- C.setKeyMulti "tt" "100" multi >>= C.setexKeyMulti "testing" "200" "1000" >>= C.incrMulti "testing" >>= C.getKeyMulti "tt" --}
         val <- execMulti multi
         checkValue val 1 "myvalue"
         checkValue val 2 1
         checkValue val 4 "100"
         delay $ Milliseconds 1100.0
-        expVal <- get cacheConn "myhash"
+        expVal <- get cacheConn testHash
         case expVal of
              Right Nothing  -> pure unit
              Right (Just v) -> fail "Key has not expired"

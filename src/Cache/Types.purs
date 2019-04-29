@@ -28,6 +28,9 @@ data CacheConnOpts
 type CacheEff e = Eff (cache :: CACHE | e)
 type CacheAff e = Aff (cache :: CACHE | e)
 
+
+-- Stream-related types
+
 data SetOptions = NoOptions
                 | IfNotExist
                 | IfExist
@@ -65,3 +68,14 @@ data TrimStrategy = Maxlen
 
 instance showTrimStrategy :: Show TrimStrategy where
   show Maxlen = "MAXLEN"
+
+
+-- Cluster-related types
+
+data ClusterConnOpts
+
+type ClusterHost = { port :: Int, host :: String }
+
+foreign import data ClusterConn :: Type
+
+instance clusterConnCacheConn :: CacheConn ClusterConn
