@@ -12,13 +12,13 @@ import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail)
 
 testKey :: String
-testKey = "test-basic"
+testKey = "test-basic{test2}"
 
 testKey1 :: String
-testKey1 = "test-basic-1"
+testKey1 = "test-basic-1{test2}"
 
 testKey2 :: String
-testKey2 = "test-basic-2"
+testKey2 = "test-basic-2{test2}"
 
 basicTest :: forall a. CacheConn a => a -> Spec _ Unit
 basicTest cacheConn =
