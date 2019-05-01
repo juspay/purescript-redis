@@ -25,55 +25,41 @@
 
 "use strict";
 
-// var Redis = require("ioredis");
-var redis = require("redis");
-var bluebird = require("bluebird");
+var Redis = require("ioredis");
 var env = process.env.NODE_ENV || 'DEV';
 
-var clsBluebird = require('cls-bluebird');
-var cls = require('cls-hooked');
+function newClientPromise(client) {
+  return new Promise(function (resolve, reject) {
+    client.on("ready", function () {
+      resolve(client);
+    });
 
-var ns = cls.getNamespace('zipkin') || cls.createNamespace('zipkin');
-clsBluebird(ns, bluebird);
-
-bluebird.promisifyAll(redis)
+    client.on("error", function (err) {
+      reject(err);
+    });
+  });
+}
 
 exports["_newCache"] = function (options) {
-  return function () {
-    // var newClient = new Redis(options);
-    var zipkinFlag = options.zipkinEnable
-    var zipkinRedisFlag = options.zipkinRedis
-    var newClient = null
+  var newClient = new Redis(options);
 
-    if (zipkinFlag === "true" && zipkinRedisFlag === "true") {
-      var zipkin = require('zipkin')
-      var logger = require('zipkin-transport-http')
-      var CLSContext = require('zipkin-context-cls');
-      var zipkinClient = require('zipkin-instrumentation-redis')
+  newClient.on("error", errorHandler)
 
-      var ctxImpl = new CLSContext()
-      var endpoint = options.zipkinURL
-      var serviceName = options.zipkinServiceName + '_redis'
-
-      var recorder = new zipkin.BatchRecorder({
-        logger: new logger.HttpLogger({
-          endpoint: endpoint + '/api/v1/spans'
-        })
-      });
-      var tracer = new zipkin.Tracer({localServiceName: serviceName, ctxImpl: ctxImpl, recorder: recorder})
-      newClient = zipkinClient(tracer, redis, options)
-    } else {
-      newClient = redis.createClient(options)
-    }
-    newClient.on("error", errorHandler)
-    return newClient;
-  };
+  return newClientPromise(newClient);
 };
 
-exports["_newMulti"] = function(client){
-    return function(){
-        return client.multi();
-    }
+exports["_duplicateCache"] = function (client, options) {
+  var dupClient = null;
+
+  if (options === undefined) {
+    dupClient = client.duplicate();
+  } else {
+    dupClient = client.duplicate(options);
+  }
+
+  dupClient.on("error", errorHandler)
+
+  return newClientPromise(dupClient);
 }
 
 var errorHandler = function(err) {
@@ -82,267 +68,57 @@ var errorHandler = function(err) {
   }
 };
 
-exports["setKeyJ"] = function(client) {
-  return function(key) {
-    return function(value) {
-      return client.setAsync(key, value);
-    };
-  };
+exports["setJ"] = function(client, key, value, px, options) {
+  var allArgs = [key, value];
+
+  if (px != "") {
+    allArgs.push("PX");
+    allArgs.push(px);
+  }
+
+  if (options != "") {
+    allArgs.push(options);
+  }
+
+  return client.set(allArgs)
 }
 
-exports["setexJ"] = function(client) {
-  return function(key) {
-    return function(value) {
-      return function(ttl) {
-        return client.setexAsync(key, ttl, value);
-      };
-    };
-  };
+exports["getJ"] = function(client, key) {
+  return client.get(key);
 };
 
-exports["setJ"] = function(client) {
-  return function(arr) {
-    return client.setAsync(arr)
-  }
-}
-
-exports["getKeyJ"] = function(client) {
-  return function(key) {
-    return client.getAsync(key);
-  };
+exports["existsJ"] = function(client, key) {
+  return client.exists(key);
 };
 
-exports["existsJ"] = function(client) {
-  return function(key) {
-    return client.existsAsync(key);
-  };
+exports["delJ"] = function(client, key) {
+  return client.del(key);
 };
 
-exports["delKeyJ"] = function(client) {
-  return function(key) {
-    return client.delAsync(key);
+exports["expireJ"] = function(client, key, ttl) {
+  return client.expire(key, ttl);
+}
+
+exports["incrJ"] = function(client, key) {
+  return client.incr(key);
+}
+
+exports["incrbyJ"] = function(client, key, by) {
+  return client.incrby(key, by);
+}
+
+exports["publishJ"] = function(client, channel, message) {
+  return client.publish(channel, message);
+}
+
+exports["subscribeJ"] = function(client, channels) {
+  return client.subscribe(channels);
+}
+
+exports["setMessageHandlerJ"] = function(client, handler) {
+  return function() {
+    client.on("message", function (channelName, channelData) {
+      handler(channelName)(channelData)()
+    });
   };
-};
-
-exports["expireJ"] = function(client) {
-  return function(key) {
-    return function(ttl) {
-      return client.expire(key, ttl);
-    }
-  }
-}
-
-exports["incrJ"] = function(client) {
-  return function(key) {
-    return client.incrAsync(key);
-  }
-}
-
-var callback = function(err, value) { return; }
-
-exports["setHashJ"] = function(client) {
-  return function(key) {
-      return function(field){
-        return function(value) {
-          return client.hsetAsync(key, field, value);
-        }
-      }
-  }
-}
-
-exports["getHashKeyJ"] = function(client) {
-  return function(key) {
-    return function(field) {
-      return client.hgetAsync(key, field);
-    }
-  }
-}
-
-exports["publishToChannelJ"] = function(client) {
-  return function(channel) {
-    return function(message) {
-      return client.publish(channel, message);
-    }
-  }; 
-}
-
-exports["subscribeJ"] = function(client) {
-  return function(channel) {
-    return function() {
-      return client.subscribe(channel, callback)
-    }
-  }
-}
-
-var getDefaultRetryStratergyJ = function() {
-  return function(options) {
-    return options.try_after * 1000;
-  }
-}
-
-exports["setMessageHandlerJ"] = function(client) {
-  return function(handler) {
-    return function() {
-      client.on("message", function (channelName, channelData) {
-        handler(channelName)(channelData)()
-      })}
-  }
-}
-
-exports["rpopJ"] = function(client) {
-  return function(listname) {
-    return function(value) {
-      return client.rpopAsync(listname, value);
-    }
-  }
-}
-
-exports["rpushJ"] = function(client) {
-  return function(listname) {
-    return function(value) {
-      return client.rpushAsync(listname, value);
-    }
-  }
-}
-
-exports["lpopJ"] = function(client) {
-  return function(listname) {
-    return client.lpopAsync(listname);
-  }
-}
-
-exports["lpushJ"] = function(client) {
-  return function(listname) {
-    return client.lpushAsync(listname);
-  }
-}
-
-exports["lindexJ"] = function(client) {
-  return function(listname) {
-    return function(index) {
-      return client.lindexAsync(listname, index);
-    }
-  }
-}
-
-exports["setMultiJ"] = function(arr){
-    return function(multi){
-       return multi.set(arr);
-    }
-}
-
-exports["getKeyMultiJ"] = function(key){
-    return function(multi){
-       return multi.get(key);
-    }
-}
-
-exports["setKeyMultiJ"] = function(key){
-    return function(value){
-        return function(multi){
-            return multi.set(key,value);
-        }
-    }
-}
-
-exports["setexKeyMultiJ"] = function(key){
-    return function(val){
-        return function(ttl){
-            return function(multi){
-               return multi.setex(key, ttl, val);    
-            }
-        }
-    }
-}
-
-exports["delKeyMultiJ"] = function(key){
-    return function(multi){
-        return multi.del(key);
-    }
-}
-
-exports["expireMultiJ"] = function(key){
-    return function(ttl){
-        return function(multi){
-           return multi.expire(key,ttl);
-        }
-    }
-}
-
-exports["incrMultiJ"] = function(key){
-    return function(multi){
-            return multi.incr(key);
-    }
-}
-
-exports["setHashMultiJ"] = function(key){
-    return function(field){
-        return function(value){
-            return function(multi){
-               return multi.hset(key, field, value);
-            }
-        }
-    }
-}
-
-exports["getHashMultiJ"] = function(key){
-    return function(field){
-        return function(multi){
-            return multi.hget(key, field);
-        } 
-    }
-}
-
-exports["publishCMultiJ"] = function(channel){
-    return function(message){
-        return function(multi){
-            return multi.publish(channel,message);
-        }
-    }
-}
-
-exports["subscribeMultiJ"] = function(channel){
-    return function(multi){
-        return multi.subscribe(channel);
-    }
-}
-
-exports["rpopMultiJ"] = function(listName){
-    return function(value){
-        return function(multi){
-            return multi.rpop(listName,value);
-        }
-    }
-}
-
-exports["rpushMultiJ"] = function(listName){
-    return function(value){
-        return function(multi){
-            return multi.rpush(listName,value);
-        }
-    }
-}
-
-exports["lpopMultiJ"] = function(listName){
-    return function(multi){
-        return multi.lpop(listName);
-    }
-}
-
-exports["lpushMultiJ"] = function(listName){
-    return function(multi){
-        return multi.lpush(listName);
-    }
-}
-
-exports["lindexMultiJ"] = function(listName){
-    return function(value){
-        return function(multi){
-            return multi.lindex(listName, value);
-        }
-    }
-}
-
-exports["execMulti"] = function(multi){
-    return multi.execAsync();
 }

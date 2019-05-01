@@ -20,85 +20,43 @@
 -}
 
 module Cache
- ( CACHE
- , CacheAff
- , CacheConn
- , CacheConnOpts
- , Multi
+ ( module Cache.Types
  , db
- , delKey
- , delKeyList
- , delKeyListMulti
- , delKeyMulti
- , exec
+ , del
+ , duplicateConn
  , exists
  , expire
- , expireMulti
- , getConn
- , getHashKey
- , getHashKeyMulti
- , getKey
- , getKeyMulti
- , getMulti
+ , get
  , host
  , incr
- , incrMulti
- , lindex
- , lindexMulti
- , lpop
- , lpopMulti
- , lpush
- , lpushMulti
+ , incrby
+ , newConn
  , port
- , publishToChannel
- , publishToChannelMulti
+ , publish
  , retryStrategy
- , rpop
- , rpopMulti
- , rpush
- , rpushMulti
  , set
- , setex
- , setexKeyMulti
- , setHash
- , setHashMulti
- , setKey
- , setKeyMulti
  , setMessageHandler
- , setMulti
  , socketKeepAlive
  , subscribe
- , subscribeMulti
- , tryAfter
- , zipkinEnable
- , zipkinRedis
- , zipkinServiceName
- , zipkinURL
  ) where
 
-import Control.Monad.Aff (Aff, attempt)
+import Cache.Internal (isNotZero, readStringMaybe)
+import Cache.Types (class CacheConn, CACHE, CacheAff, CacheConnOpts, CacheEff, SetOptions(..), SimpleConn)
+import Control.Monad.Aff (attempt)
 import Control.Monad.Eff (Eff, kind Effect)
-import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (Error)
-import Control.Monad.Except (runExcept)
-import Control.Promise (Promise, toAff, toAffE)
-import Data.Either (Either, hush)
-import Data.Foreign (Foreign, readString)
-import Data.Maybe (Maybe)
+import Control.Promise (Promise, toAff)
+import Data.Array.NonEmpty (NonEmptyArray, toArray)
+import Data.Either (Either)
+import Data.Foreign (Foreign)
+import Data.Foreign.NullOrUndefined (undefined)
+import Data.Function.Uncurried (Fn2, Fn3, Fn5, runFn2, runFn3, runFn5)
+import Data.Int (round)
+import Data.Maybe (Maybe(..), maybe)
+import Data.Newtype (unwrap)
 import Data.Options (Option, Options, opt, options)
-import Prelude (Unit, ($), (<<<), map, pure)
-
-foreign import data CacheConn :: Type
-
-foreign import data Multi :: Type
-
-foreign import data CACHE :: Effect
-
-data CacheConnOpts
-
-type CacheEff e = Eff (cache :: CACHE | e)
-type CacheAff e = Aff (cache :: CACHE | e)
-type MultiToMulti = Multi -> Multi
+import Data.Time.Duration (Milliseconds, Seconds)
+import Prelude (Unit, map, show, void, ($), (<<<))
 
 host :: Option CacheConnOpts String
 host = opt "host"
@@ -110,189 +68,60 @@ db :: Option CacheConnOpts Int
 db = opt "db"
 
 socketKeepAlive :: Option CacheConnOpts Boolean
-socketKeepAlive = opt "socket_keepalive"
-
--- sentinels :: Option CacheConnOpts (Array { host :: String, port :: Int })
--- sentinels = opt "sentinels"
-
--- name :: Option CacheConnOpts String
--- name = opt "name"
-
-tryAfter :: Option CacheConnOpts Int
-tryAfter = opt "try_after"
+socketKeepAlive = opt "keepAlive"
 
 retryStrategy :: Option CacheConnOpts (CacheConnOpts -> Int)
-retryStrategy = opt "retry_strategy"
--- retryStrategy = opt "retryStrategy"
+retryStrategy = opt "retryStrategy"
 
-zipkinEnable :: Option CacheConnOpts String
-zipkinEnable = opt "zipkinEnable"
+foreign import setJ :: forall a. Fn5 a String String String String (Promise String)
+foreign import getJ :: forall a. Fn2 a String (Promise Foreign)
+foreign import existsJ :: forall a. Fn2 a String (Promise Int)
+foreign import delJ :: forall a. Fn2 a (Array String) (Promise Int)
+foreign import expireJ :: forall a. Fn3 a String Int (Promise Int)
+foreign import incrJ :: forall a. Fn2 a String (Promise Int)
+foreign import incrbyJ :: forall a. Fn3 a String Int (Promise Int)
+foreign import publishJ :: forall a. Fn3 a String String (Promise Int)
+foreign import subscribeJ :: forall a. Fn2 a (Array String) (Promise String)
+foreign import setMessageHandlerJ :: forall a e eff. Fn2 a (String -> String -> Eff eff Unit) (CacheEff e Unit)
+foreign import _newCache :: Foreign -> Promise SimpleConn
+foreign import _duplicateCache :: Fn2 SimpleConn Foreign (Promise SimpleConn)
 
-zipkinRedis :: Option CacheConnOpts String
-zipkinRedis = opt "zipkinRedis"
+newConn :: forall e. Options CacheConnOpts -> CacheAff e (Either Error SimpleConn)
+newConn = attempt <<< toAff <<< _newCache <<< options
 
-zipkinURL :: Option CacheConnOpts String
-zipkinURL = opt "zipkinURL"
+duplicateConn :: forall e. SimpleConn -> Maybe (Options CacheConnOpts) -> CacheAff e (Either Error SimpleConn)
+duplicateConn cacheConn Nothing     = attempt <<< toAff $ runFn2 _duplicateCache cacheConn undefined
+duplicateConn cacheConn (Just opts) = attempt <<< toAff $ runFn2 _duplicateCache cacheConn (options opts)
 
-zipkinServiceName :: Option CacheConnOpts String
-zipkinServiceName = opt "zipkinServiceName"
+set :: forall a e. CacheConn a => a -> String -> String -> Maybe Milliseconds -> SetOptions -> CacheAff e (Either Error Unit)
+set cacheConn key value mExp opts =
+  attempt <<< void <<< toAff $ runFn5 setJ cacheConn key value (maybe "" msToString mExp) (show opts)
+  where
+        msToString = show <<< round <<< unwrap
 
-foreign import setJ :: CacheConn -> Array String -> Promise String
-foreign import setKeyJ :: CacheConn -> String -> String -> Promise String
-foreign import getKeyJ :: CacheConn -> String -> Promise String
-foreign import existsJ :: CacheConn -> String -> Promise Boolean
-foreign import setexJ :: CacheConn -> String -> String -> String -> Promise String
-foreign import delKeyJ :: CacheConn -> Array String -> Promise String
-foreign import expireJ :: CacheConn -> String -> String -> Promise String
-foreign import incrJ :: CacheConn -> String -> Promise String
-foreign import setHashJ :: CacheConn -> String -> String -> String -> Promise String
-foreign import getHashKeyJ :: CacheConn -> String -> String -> Promise String
-foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
-foreign import subscribeJ :: forall eff. CacheConn -> String -> Eff eff (Promise String)
-foreign import setMessageHandlerJ :: forall eff1 eff2. CacheConn -> (String -> String -> Eff eff1 Unit) -> Eff eff2 (Promise String)
-foreign import _newCache :: forall e. Foreign -> CacheEff e CacheConn
-foreign import _newMulti :: forall e. CacheConn -> CacheEff e Multi
-foreign import execMulti :: Multi -> Promise (Array String)
-foreign import rpopJ :: CacheConn -> String -> Promise Foreign
-foreign import rpushJ :: CacheConn -> String -> String -> Promise Int
-foreign import lpopJ :: CacheConn -> String -> Promise Foreign
-foreign import lpushJ :: CacheConn -> String -> String -> Promise Int
-foreign import lindexJ :: CacheConn -> String -> Int -> Promise Foreign
+get :: forall a e. CacheConn a => a -> String -> CacheAff e (Either Error (Maybe String))
+get cacheConn key = attempt <<< map readStringMaybe <<< toAff $ runFn2 getJ cacheConn key
 
-foreign import setMultiJ ::  Array String -> MultiToMulti  
-foreign import getKeyMultiJ ::  String -> MultiToMulti
-foreign import setKeyMultiJ ::  String -> String -> MultiToMulti
-foreign import setexKeyMultiJ :: String -> String -> String -> MultiToMulti
-foreign import delKeyMultiJ :: Array String -> MultiToMulti
-foreign import expireMultiJ :: String -> String -> MultiToMulti
-foreign import incrMultiJ ::  String -> MultiToMulti
-foreign import setHashMultiJ :: String -> String -> String -> MultiToMulti
-foreign import getHashMultiJ :: String -> String -> MultiToMulti 
-foreign import publishCMultiJ :: String -> String -> MultiToMulti
-foreign import subscribeMultiJ :: String -> MultiToMulti
-foreign import rpopMultiJ :: String -> MultiToMulti
-foreign import rpushMultiJ :: String -> String -> MultiToMulti
-foreign import lpopMultiJ :: String -> MultiToMulti
-foreign import lpushMultiJ :: String -> String -> MultiToMulti
-foreign import lindexMultiJ :: String -> Int -> MultiToMulti
+exists :: forall a e. CacheConn a => a -> String -> CacheAff e (Either Error Boolean)
+exists cacheConn = attempt <<< map isNotZero <<< toAff <<< runFn2 existsJ cacheConn
 
-getConn :: forall e. Options CacheConnOpts -> CacheAff e CacheConn
-getConn = liftEff <<< _newCache <<< options
+del :: forall a e. CacheConn a => a -> NonEmptyArray String -> CacheAff e (Either Error Int)
+del cacheConn keys = attempt <<< toAff $ runFn2 delJ cacheConn (toArray keys)
 
-getMulti :: forall e. CacheConn -> CacheAff e Multi
-getMulti = liftEff <<< _newMulti 
+expire :: forall a e. CacheConn a => a -> String -> Seconds -> CacheAff e (Either Error Boolean)
+expire cacheConn key ttl = attempt <<< map isNotZero <<< toAff $ runFn3 expireJ cacheConn key (round <<< unwrap $ ttl)
 
-exec :: forall e. Multi -> CacheAff e (Either Error (Array String))
-exec = attempt <<< toAff <<< execMulti
+incr :: forall a e. CacheConn a => a -> String -> CacheAff e (Either Error Int)
+incr cacheConn key = attempt <<< toAff $ runFn2 incrJ cacheConn key
 
-setMulti :: forall e. Array String -> Multi -> CacheAff e Multi
-setMulti vals =  pure <<< setMultiJ vals
+incrby :: forall a e. CacheConn a => a -> String -> Int -> CacheAff e (Either Error Int)
+incrby cacheConn key by = attempt <<< toAff $ runFn3 incrbyJ cacheConn key by
 
-set :: forall e. CacheConn -> Array String -> Aff (cache :: CACHE | e ) (Either Error String)
-set cacheConn arr = attempt $ toAff $ setJ cacheConn arr
+publish :: forall a e. CacheConn a => a -> String -> String -> CacheAff e (Either Error Int)
+publish cacheConn channel message = attempt <<< toAff $ runFn3 publishJ cacheConn channel message
 
-setKeyMulti :: forall e. String -> String -> Multi -> CacheAff e Multi
-setKeyMulti key val =  pure <<< setKeyMultiJ key val
+subscribe :: forall a e. CacheConn a => a -> NonEmptyArray String -> CacheAff e (Either Error Unit)
+subscribe cacheConn channel = attempt <<< void <<< toAff $ runFn2 subscribeJ cacheConn (toArray channel)
 
-setKey :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error String)
-setKey cacheConn key value = attempt $ toAff $ setKeyJ cacheConn key value
-
-setexKeyMulti :: forall e. String -> String -> String -> Multi -> CacheAff e Multi
-setexKeyMulti key value ttl =  pure <<< setexKeyMultiJ key value ttl 
-
-setex :: forall e. CacheConn -> String -> String -> String -> CacheAff e  (Either Error String)
-setex cacheConn key value ttl = attempt $ toAff $ setexJ cacheConn key value ttl
-
-getKeyMulti :: forall e. String -> Multi -> CacheAff e Multi
-getKeyMulti val =  pure <<< getKeyMultiJ val
-
-getKey :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
-getKey cacheConn key = attempt $ toAff $ getKeyJ cacheConn key
-
-exists :: forall e. CacheConn -> String -> CacheAff e  (Either Error Boolean)
-exists cacheConn = attempt <<< toAff <<< existsJ cacheConn
-
-delKeyMulti :: forall e. String -> Multi -> CacheAff e Multi
-delKeyMulti key = pure <<< delKeyMultiJ [key]
-
-delKey :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
-delKey cacheConn key = attempt $ toAff $ delKeyJ cacheConn [key]
-
-delKeyListMulti :: forall e. Array String -> Multi -> CacheAff e Multi
-delKeyListMulti keys =  pure <<< delKeyMultiJ keys 
-
-delKeyList :: forall e. CacheConn -> Array String -> CacheAff e  (Either Error String)
-delKeyList cacheConn key = attempt $ toAff $ delKeyJ cacheConn key
-
-expireMulti :: forall e. String -> String -> Multi -> CacheAff e Multi
-expireMulti key ttl = pure <<< expireMultiJ key ttl
-
-expire :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error String)
-expire cacheConn key ttl = attempt $ toAff $ expireJ cacheConn key ttl
-
-incrMulti :: forall e. String -> Multi -> CacheAff e Multi
-incrMulti key = pure <<< incrMultiJ key 
-
-incr :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
-incr cacheConn key = attempt $ toAff $ incrJ cacheConn key
-
-setHashMulti :: forall e. String -> String -> String -> Multi -> CacheAff e Multi
-setHashMulti key field val = pure <<< setHashMultiJ key field val
-
-setHash :: forall e. CacheConn -> String -> String -> String -> CacheAff e  (Either Error String)
-setHash cacheConn key field value = attempt $ toAff $ setHashJ cacheConn key field value
-
-getHashKeyMulti :: forall e. String -> String -> Multi -> CacheAff e Multi
-getHashKeyMulti key field = pure <<< getHashMultiJ key field
-
-getHashKey :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error String)
-getHashKey cacheConn key field = attempt $ toAff $ getHashKeyJ cacheConn key field
-
-publishToChannelMulti :: forall e. String -> String -> Multi ->  CacheAff e Multi
-publishToChannelMulti channel message = pure <<< publishCMultiJ channel message
-
-publishToChannel :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error String)
-publishToChannel cacheConn channel message = attempt $ toAff $ publishToChannelJ cacheConn channel message
-
-subscribeMulti :: forall e. String -> Multi -> CacheAff e Multi
-subscribeMulti channel =  pure <<< subscribeMultiJ channel
-
-subscribe :: forall e. CacheConn -> String -> CacheAff e  (Either Error String)
-subscribe cacheConn channel = attempt $ toAffE $ subscribeJ cacheConn channel
-
-readStringMaybe :: Foreign -> Maybe String
-readStringMaybe = hush <<< runExcept <<< readString
-
-rpopMulti :: forall e. String -> Multi -> CacheAff e Multi
-rpopMulti listName = pure <<< rpopMultiJ listName
-
-rpop :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
-rpop cacheConn listName = attempt $ map readStringMaybe $ toAff $ rpopJ cacheConn listName
-
-rpushMulti :: forall e. String -> String -> Multi -> CacheAff e Multi
-rpushMulti listName value = pure <<< rpushMultiJ listName value
-
-rpush :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error Int)
-rpush cacheConn listName value = attempt $ toAff $ rpushJ cacheConn listName value
-
-lpopMulti :: forall e. String -> Multi -> CacheAff e Multi
-lpopMulti listName = pure <<< lpopMultiJ listName
-
-lpop :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
-lpop cacheConn listName = attempt $ map readStringMaybe $ toAff $ lpopJ cacheConn listName
-
-lpushMulti :: forall e. String -> String -> Multi -> CacheAff e Multi
-lpushMulti listName value = pure <<< lpushMultiJ listName value
-
-lpush :: forall e. CacheConn -> String -> String -> CacheAff e  (Either Error Int)
-lpush cacheConn listName value = attempt $ toAff $ lpushJ cacheConn listName value
-
-lindexMulti :: forall e. String -> Int -> Multi -> CacheAff e Multi
-lindexMulti listName index = pure <<< lindexMultiJ  listName index
-
-lindex :: forall e. CacheConn -> String -> Int -> CacheAff e  (Either Error (Maybe String))
-lindex cacheConn listName index = attempt $ map readStringMaybe $ toAff $ lindexJ cacheConn listName index
-
-setMessageHandler :: forall e eff. CacheConn -> (String -> String -> Eff eff Unit) -> CacheAff e  (Either Error String)
-setMessageHandler cacheConn f = attempt $ toAffE $ setMessageHandlerJ cacheConn f
-
+setMessageHandler :: forall a e eff. CacheConn a => a -> (String -> String -> Eff eff Unit) -> CacheEff e Unit
+setMessageHandler cacheConn f = runFn2 setMessageHandlerJ cacheConn f

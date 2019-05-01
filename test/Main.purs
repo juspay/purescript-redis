@@ -2,23 +2,55 @@ module Test.Main where
 
 import Prelude
 
-import Cache (CACHE, db, exec, getConn, getHashKey, getHashKeyMulti, getKey, getKeyMulti, getMulti, host, incr, incrMulti, lpop, port, rpush, setHash, setHashMulti, setKey, setKeyMulti, setMulti, setex, setexKeyMulti, socketKeepAlive) as C
+import Cache (db, host, newConn, port, socketKeepAlive) as C
+import Cache.Cluster (newClusterConn) as Cluster
 import Control.Monad.Aff (Aff, launchAff)
 import Control.Monad.Eff (Eff)
-import Data.Options (options, (:=))
-import Debug.Trace (spy, traceShow)
+import Control.Monad.Eff.Class (liftEff)
+import Data.Either (Either(..))
+import Data.Monoid (mempty)
+import Data.Options ((:=))
+import Test.Basic (basicTest)
+import Test.Hash (hashTest)
+import Test.List (listTest)
 import Test.Multi (multiTest)
-import Test.Queue (queueTest)
+import Test.PubSub (pubsubTest)
+import Test.Spec (describe, it)
+import Test.Spec.Assertions (fail)
+import Test.Spec.Reporter (consoleReporter)
+import Test.Spec.Runner (run)
+import Test.Stream (streamTest)
 
-foreign import startContext :: forall e a. String -> Eff e a -> Eff e Unit
-
-startTest :: forall e. Aff _ Unit
+startTest :: Aff _ Unit
 startTest = do
     let cacheOpts = C.host := "127.0.0.1" <> C.port := 6379 <> C.db := 0 <> C.socketKeepAlive := true
-    cacheConn <- C.getConn cacheOpts
-    multiTest cacheConn
-    queueTest cacheConn
-    pure unit
+    eCacheConn <- C.newConn cacheOpts
+    eClusterConn <- Cluster.newClusterConn [{ host: "127.0.0.1", port: 7000 }] mempty
+    liftEff $ run [consoleReporter] do
+       describe "Simple connection"
+         case eCacheConn of
+           Right cacheConn -> do
+              basicTest cacheConn
+              pubsubTest cacheConn
+              listTest cacheConn
+              hashTest cacheConn
+              multiTest cacheConn
+              streamTest cacheConn
+           Left err        -> do
+              it "fails" do
+                 fail $ show err
 
-main :: forall e. Eff _ Unit
-main = startContext "awesome" (launchAff startTest) *> pure unit
+       describe "Cluster connection"
+         case eClusterConn of
+           Right cacheConn -> do
+              basicTest cacheConn
+              listTest cacheConn
+              hashTest cacheConn
+              multiTest cacheConn
+              streamTest cacheConn
+           Left err        -> do
+              it "fails" do
+                 fail $ show err
+
+main :: Eff _ Unit
+main = launchAff startTest *> pure unit
