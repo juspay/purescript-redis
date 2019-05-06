@@ -41,7 +41,13 @@ function newClientPromise(client) {
 }
 
 exports["_newCache"] = function (options) {
-  var newClient = new Redis(options);
+  var newClient = null;
+  if(options.isClusterMode == true){
+    if(typeof options.length == "undefined") options = [options]
+    newClient = new Redis.Cluster(options);
+  }else{
+    newClient = new Redis(options);
+  }
 
   newClient.on("error", errorHandler)
 
