@@ -42,7 +42,7 @@ module Cache
  ) where
 
 import Cache.Internal (isNotZero, readStringMaybe)
-import Cache.Types (class CacheConn, CACHE, CacheAff, CacheConnOpts, CacheEff, SetOptions(..), SimpleConn)
+import Cache.Types (class CacheConn, CACHE, CacheAff, CacheEff, SetOptions(..), SimpleConn, SimpleConnOpts)
 import Control.Monad.Aff (attempt)
 import Control.Monad.Eff (Eff, kind Effect)
 import Control.Monad.Eff.Exception (Error)
@@ -59,22 +59,22 @@ import Data.Options (Option, Options, opt, options)
 import Data.Time.Duration (Milliseconds, Seconds)
 import Prelude (Unit, map, show, void, ($), (<<<))
 
-host :: Option CacheConnOpts String
+host :: Option SimpleConnOpts String
 host = opt "host"
 
-port :: Option CacheConnOpts Int
+port :: Option SimpleConnOpts Int
 port = opt "port"
 
-db :: Option CacheConnOpts Int
+db :: Option SimpleConnOpts Int
 db = opt "db"
 
-isClusterMode :: Option CacheConnOpts Boolean
+isClusterMode :: Option SimpleConnOpts Boolean
 isClusterMode = opt "isClusterMode"
 
-socketKeepAlive :: Option CacheConnOpts Boolean
+socketKeepAlive :: Option SimpleConnOpts Boolean
 socketKeepAlive = opt "keepAlive"
 
-retryStrategy :: Option CacheConnOpts (CacheConnOpts -> Int)
+retryStrategy :: Option SimpleConnOpts (SimpleConnOpts -> Int)
 retryStrategy = opt "retryStrategy"
 
 foreign import setJ :: forall a. Fn5 a String String String String (Promise String)
@@ -90,10 +90,10 @@ foreign import setMessageHandlerJ :: forall a e eff. Fn2 a (String -> String -> 
 foreign import _newCache :: Foreign -> Promise SimpleConn
 foreign import _duplicateCache :: Fn2 SimpleConn Foreign (Promise SimpleConn)
 
-newConn :: forall e. Options CacheConnOpts -> CacheAff e (Either Error SimpleConn)
+newConn :: forall e. Options SimpleConnOpts -> CacheAff e (Either Error SimpleConn)
 newConn = attempt <<< toAff <<< _newCache <<< options
 
-duplicateConn :: forall e. SimpleConn -> Maybe (Options CacheConnOpts) -> CacheAff e (Either Error SimpleConn)
+duplicateConn :: forall e. SimpleConn -> Maybe (Options SimpleConnOpts) -> CacheAff e (Either Error SimpleConn)
 duplicateConn cacheConn Nothing     = attempt <<< toAff $ runFn2 _duplicateCache cacheConn undefined
 duplicateConn cacheConn (Just opts) = attempt <<< toAff $ runFn2 _duplicateCache cacheConn (options opts)
 
