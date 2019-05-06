@@ -30,6 +30,7 @@ module Cache
  , host
  , incr
  , incrby
+ , isClusterMode
  , newConn
  , port
  , publish
@@ -66,6 +67,9 @@ port = opt "port"
 
 db :: Option CacheConnOpts Int
 db = opt "db"
+
+isClusterMode :: Option CacheConnOpts Boolean
+isClusterMode = opt "isClusterMode"
 
 socketKeepAlive :: Option CacheConnOpts Boolean
 socketKeepAlive = opt "keepAlive"
