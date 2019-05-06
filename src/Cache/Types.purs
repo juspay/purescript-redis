@@ -23,7 +23,7 @@ instance simpleConnCacheConn :: CacheConn SimpleConn
 
 foreign import data CACHE :: Effect
 
-data CacheConnOpts
+data SimpleConnOpts
 
 type CacheEff e = Eff (cache :: CACHE | e)
 type CacheAff e = Aff (cache :: CACHE | e)
