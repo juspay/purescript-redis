@@ -19,7 +19,7 @@ module Cache.Stream
 
 import Cache.Stream.Internal
 
-import Cache.Types (CacheAff, CacheConn, Entry(..), EntryID(..), Item, TrimStrategy)
+import Cache.Types (class CacheConn, CacheAff, Entry(..), EntryID(..), Item, TrimStrategy)
 import Control.Monad.Aff (attempt)
 import Control.Monad.Eff.Exception (Error, error)
 import Control.Monad.Except (Except, runExcept)
@@ -69,7 +69,7 @@ fromString s =
       then EntryID <$> ms <*> seq
       else Nothing
 
-xadd :: forall e. CacheConn -> String -> EntryID -> Array Item -> CacheAff e (Either Error EntryID)
+xadd :: forall a e. CacheConn a => a -> String -> EntryID -> Array Item -> CacheAff e (Either Error EntryID)
 xadd _ _ AfterLastID _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
 xadd _ _ MinID       _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
 xadd _ _ MaxID       _ = pure $ Left $ error "XADD must take a concrete entry ID or AutoID"
@@ -78,28 +78,28 @@ xadd cacheConn key entryId args = do
   res <- attempt <<< toAff $ runFn4 xaddJ cacheConn key (show entryId) $ itemsToArray args
   pure $ forceFromString  <$> res
 
-xdel :: forall e. CacheConn -> String -> EntryID -> CacheAff e (Either Error Int)
+xdel :: forall a e. CacheConn a => a -> String -> EntryID -> CacheAff e (Either Error Int)
 xdel cacheConn key entryId = attempt <<< toAff $ runFn3 xdelJ cacheConn key (show entryId)
 
 -- FIXME: this and all Ints should actually be 64-bit (instead of the current 32-bit)
 -- Note that the API does not distinguish between a non-existing key and an
 -- empty stream
-xlen :: forall e. CacheConn -> String -> CacheAff e (Either Error Int)
+xlen :: forall a e. CacheConn a => a -> String -> CacheAff e (Either Error Int)
 xlen cacheConn key = attempt <<< toAff $ runFn2 xlenJ cacheConn key
 
-xrange :: forall e. CacheConn -> String -> EntryID -> EntryID -> Maybe Int -> CacheAff e (Either Error (Array Entry))
+xrange :: forall a e. CacheConn a => a -> String -> EntryID -> EntryID -> Maybe Int -> CacheAff e (Either Error (Array Entry))
 xrange cacheConn stream start end mCount = do
   let count = fromMaybe 0 mCount
   res <- attempt <<< toAff $ runFn5 xrangeJ cacheConn stream (show start) (show end) count
   pure $ res >>= readEntries
 
-xrevrange :: forall e. CacheConn -> String -> EntryID -> EntryID -> Maybe Int -> CacheAff e (Either Error (Array Entry))
+xrevrange :: forall a e. CacheConn a => a -> String -> EntryID -> EntryID -> Maybe Int -> CacheAff e (Either Error (Array Entry))
 xrevrange cacheConn stream start end mCount = do
   let count = fromMaybe 0 mCount
   res <- attempt <<< toAff $ runFn5 xrangeJ cacheConn stream (show start) (show end) count
   pure $ res >>= readEntries
 
-xread :: forall e. CacheConn -> Maybe Int -> Array (Tuple String EntryID) -> CacheAff e (Either Error (StrMap (Array Entry)))
+xread :: forall a e. CacheConn a => a -> Maybe Int -> Array (Tuple String EntryID) -> CacheAff e (Either Error (StrMap (Array Entry)))
 xread cacheConn mCount streamIds = do
   let count   = fromMaybe 0 mCount
       streams = fst <$> streamIds
@@ -115,32 +115,32 @@ xread cacheConn mCount streamIds = do
           streamEntries <- sequence $ readStreamEntries <$> arrStreams
           Right $ fromFoldable streamEntries
 
-xtrim :: forall e. CacheConn -> String -> TrimStrategy -> Boolean -> Int -> CacheAff e (Either Error Int)
+xtrim :: forall a e. CacheConn a => a -> String -> TrimStrategy -> Boolean -> Int -> CacheAff e (Either Error Int)
 xtrim cacheConn key strategy approx len = attempt <<< toAff $ runFn5 xtrimJ cacheConn key (show strategy) approx len
 
 -- Consumer group API
 
-xgroupCreate :: forall e. CacheConn -> String -> String -> EntryID -> CacheAff e (Either Error Unit)
+xgroupCreate :: forall a e. CacheConn a => a -> String -> String -> EntryID -> CacheAff e (Either Error Unit)
 xgroupCreate _ _ _ AutoID = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
 xgroupCreate _ _ _ MinID  = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
 xgroupCreate _ _ _ MaxID  = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
 xgroupCreate _ _ _ NewID  = pure $ Left $ error "XCREATE must take a concrete ID or AfterLastID"
 xgroupCreate cacheConn key groupName entryId = attempt <<< toAff $ runFn4 xgroupCreateJ cacheConn key groupName (show entryId)
 
-xgroupDestroy :: forall e. CacheConn -> String -> String -> CacheAff e (Either Error Unit)
+xgroupDestroy :: forall a e. CacheConn a => a -> String -> String -> CacheAff e (Either Error Unit)
 xgroupDestroy cacheConn key groupName = attempt <<< toAff $ runFn3 xgroupDestroyJ cacheConn key groupName
 
-xgroupDelConsumer :: forall e. CacheConn -> String -> String -> String -> CacheAff e (Either Error Unit)
+xgroupDelConsumer :: forall a e. CacheConn a => a -> String -> String -> String -> CacheAff e (Either Error Unit)
 xgroupDelConsumer cacheConn key groupName consumerName = attempt <<< toAff $ runFn4 xgroupDelConsumerJ cacheConn key groupName consumerName
 
-xgroupSetId :: forall e. CacheConn -> String -> String -> EntryID -> CacheAff e (Either Error Unit)
+xgroupSetId :: forall a e. CacheConn a => a -> String -> String -> EntryID -> CacheAff e (Either Error Unit)
 xgroupSetId _ _ _ AutoID = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
 xgroupSetId _ _ _ MinID  = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
 xgroupSetId _ _ _ MaxID  = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
 xgroupSetId _ _ _ NewID  = pure $ Left $ error "XGROUP SETID must take a concrete ID or AfterLastID"
 xgroupSetId cacheConn key groupName entryId = attempt <<< toAff $ runFn4 xgroupSetIdJ cacheConn key groupName (show entryId)
 
-xreadGroup :: forall e. CacheConn -> String -> String -> Maybe Int -> Boolean -> Array (Tuple String EntryID) -> CacheAff e (Either Error (StrMap (Array Entry)))
+xreadGroup :: forall a e. CacheConn a => a -> String -> String -> Maybe Int -> Boolean -> Array (Tuple String EntryID) -> CacheAff e (Either Error (StrMap (Array Entry)))
 xreadGroup cacheConn groupName consumerName mCount noAck streamIds = do
   let count   = fromMaybe 0 mCount
       streams = fst <$> streamIds
@@ -156,10 +156,10 @@ xreadGroup cacheConn groupName consumerName mCount noAck streamIds = do
           streamEntries <- sequence $ readStreamEntries <$> arrStreams
           Right $ fromFoldable streamEntries
 
-xack :: forall e. CacheConn -> String -> String -> Array EntryID -> CacheAff e (Either Error Int)
+xack :: forall a e. CacheConn a => a -> String -> String -> Array EntryID -> CacheAff e (Either Error Int)
 xack cacheConn key group entryIds = attempt <<< toAff $ runFn4 xackJ cacheConn key group (show <$> entryIds)
 
-xclaim :: forall e. CacheConn -> String -> String -> String -> Int -> Array EntryID -> Boolean -> CacheAff e (Either Error (Array Entry))
+xclaim :: forall a e. CacheConn a => a -> String -> String -> String -> Int -> Array EntryID -> Boolean -> CacheAff e (Either Error (Array Entry))
 xclaim cacheConn key groupName consumerName idleTimeMs entryIds force = do
   res <- attempt <<< toAff $ runFn7 xclaimJ cacheConn key groupName consumerName idleTimeMs (show <$> entryIds) force
   pure $ res >>= readEntries
