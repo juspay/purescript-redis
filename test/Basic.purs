@@ -59,6 +59,12 @@ basicTest cacheConn =
         checkValue v7 1
         checkValue v8 3
 
+        v9 <- set cacheConn testKey1 "3" Nothing IfNotExist
+        checkValue v9 false
+
+        v10 <- set cacheConn testKey1 "3" Nothing IfExist
+        checkValue v10 true
+
         -- Clean up
         _ <- del cacheConn $ testKey : testKey1 : singleton testKey2
         pure unit
