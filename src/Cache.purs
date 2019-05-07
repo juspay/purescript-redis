@@ -120,8 +120,14 @@ duplicateConn :: forall e. CacheConn -> Maybe (Options CacheConnOpts) -> CacheAf
 duplicateConn cacheConn Nothing     = attempt <<< toAff $ runFn2 _duplicateCache cacheConn undefined
 duplicateConn cacheConn (Just opts) = attempt <<< toAff $ runFn2 _duplicateCache cacheConn (options opts)
 
-set :: forall e. CacheConn -> String -> String -> Maybe Milliseconds -> SetOptions -> CacheAff e (Either Error Boolean)
+set :: forall e. CacheConn -> String -> String -> Maybe Milliseconds -> SetOptions -> CacheAff e (Either Error Unit)
 set cacheConn key value mExp opts =
+  attempt <<< void <<< toAff $ runFn5 setJ cacheConn key value (maybe "" msToString mExp) (show opts)
+  where
+        msToString = show <<< round <<< unwrap
+
+set' :: forall e. CacheConn -> String -> String -> Maybe Milliseconds -> SetOptions -> CacheAff e (Either Error Boolean)
+set' cacheConn key value mExp opts =
   attempt <<< map parseSetResult <<< toAff $ runFn5 setJ cacheConn key value (maybe "" msToString mExp) (show opts)
   where
         msToString = show <<< round <<< unwrap
