@@ -53,7 +53,7 @@ import Control.Monad.Eff.Exception (Error)
 import Control.Promise (Promise, toAff)
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either)
-import Data.Foreign (Foreign)
+import Data.Foreign (Foreign, isNull)
 import Data.Foreign.NullOrUndefined (undefined)
 import Data.Function.Uncurried (Fn2, Fn3, Fn5, runFn2, runFn3, runFn5)
 import Data.Int (round)
@@ -100,7 +100,7 @@ zipkinURL = opt "zipkinURL"
 zipkinServiceName :: Option CacheConnOpts String
 zipkinServiceName = opt "zipkinServiceName"
 
-foreign import setJ :: Fn5 CacheConn String String String String (Promise String)
+foreign import setJ :: Fn5 CacheConn String String String String (Promise Foreign)
 foreign import getJ :: Fn2 CacheConn String (Promise Foreign)
 foreign import existsJ :: Fn2 CacheConn String (Promise Int)
 foreign import delJ :: Fn2 CacheConn (Array String) (Promise Int)
@@ -120,11 +120,16 @@ duplicateConn :: forall e. CacheConn -> Maybe (Options CacheConnOpts) -> CacheAf
 duplicateConn cacheConn Nothing     = attempt <<< toAff $ runFn2 _duplicateCache cacheConn undefined
 duplicateConn cacheConn (Just opts) = attempt <<< toAff $ runFn2 _duplicateCache cacheConn (options opts)
 
-set :: forall e. CacheConn -> String -> String -> Maybe Milliseconds -> SetOptions -> CacheAff e (Either Error Unit)
+set :: forall e. CacheConn -> String -> String -> Maybe Milliseconds -> SetOptions -> CacheAff e (Either Error Boolean)
 set cacheConn key value mExp opts =
-  attempt <<< void <<< toAff $ runFn5 setJ cacheConn key value (maybe "" msToString mExp) (show opts)
+  attempt <<< map parseSetResult <<< toAff $ runFn5 setJ cacheConn key value (maybe "" msToString mExp) (show opts)
   where
         msToString = show <<< round <<< unwrap
+
+        parseSetResult res | isNull res = false -- Failed because exists (when NX) or not exists (when EX)
+        parseSetResult res              = case readStringMaybe res of
+                                               Just "OK" -> true  -- All good
+                                               otherwise -> false -- This should not happen
 
 get :: forall e. CacheConn -> String -> CacheAff e (Either Error (Maybe String))
 get cacheConn key = attempt <<< map readStringMaybe <<< toAff $ runFn2 getJ cacheConn key
