@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2019 "JUSPAY Technologies"
+* Copyright (c) 2012-2019 "JUSPAY Technologies"
 * JUSPAY Technologies Pvt. Ltd. [https://www.juspay.in]
 *
 * This file is part of JUSPAY Platform.
@@ -25,22 +25,28 @@
 
 "use strict";
 
-exports["rpopJ"] = function(client, listname) {
-  return client.rpop(listname);
-}
+var Redis = require('ioredis');
 
-exports["rpushJ"] = function(client, listname, value) {
-  return client.rpush(listname, value);
-}
+// Cluster API
 
-exports["lpopJ"] = function(client, listname) {
-  return client.lpop(listname);
-}
+var errorHandler = function(err) {
+  if (err) {
+    console.log("Redis cluster connection lost", err);
+  }
+};
 
-exports["lpushJ"] = function(client, listname, value) {
-  return client.lpush(listname, value);
-}
+exports["newClusterConnJ"] = function(startNodes, options) {
+  var clusterClient = new Redis.Cluster(startNodes, options);
 
-exports["lindexJ"] = function(client, listname, index) {
-  return client.lindex(listname, index);
+  clusterClient.on("error", errorHandler)
+
+  return new Promise(function (resolve, reject) {
+    clusterClient.on("ready", function () {
+      resolve(clusterClient);
+    });
+
+    clusterClient.on("error", function (err) {
+      reject(err);
+    });
+  });
 }

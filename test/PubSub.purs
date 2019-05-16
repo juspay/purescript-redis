@@ -1,6 +1,6 @@
 module Test.PubSub where
 
-import Cache (CacheConn, duplicateConn, publish, setMessageHandler, subscribe)
+import Cache (SimpleConn, duplicateConn, publish, setMessageHandler, subscribe)
 import Cache.Internal (checkValue)
 import Control.Monad.Aff (delay, launchAff_)
 import Control.Monad.Eff.Class (liftEff)
@@ -16,7 +16,7 @@ import Test.Spec.Assertions (fail, shouldEqual)
 testChannel :: String
 testChannel = "test-channel"
 
-pubsubTest :: CacheConn -> Spec _ Unit
+pubsubTest :: SimpleConn -> Spec _ Unit
 pubsubTest cacheConn =
   describe "Pub/Sub" do
      it "works" do
