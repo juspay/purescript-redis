@@ -25,161 +25,124 @@
 
 "use strict";
 
-var Redis = require("ioredis");
+// var Redis = require("ioredis");
+var redis = require("redis");
+var bluebird = require("bluebird");
 var env = process.env.NODE_ENV || 'DEV';
 
-var _newCache = function (options) {
-  return function () {
-    var zipkinFlag = options.zipkinEnable
-    var zipkinRedisFlag = options.zipkinRedis
-    var newClient = null
+var clsBluebird = require('cls-bluebird');
+var cls = require('cls-hooked');
 
-    if (zipkinFlag === "true" && zipkinRedisFlag === "true") {
-      var zipkin = require('zipkin')
-      var logger = require('zipkin-transport-http')
-      var CLSContext = require('zipkin-context-cls');
-      var zipkinClient = require('zipkin-instrumentation-redis')
+var ns = cls.getNamespace('zipkin') || cls.createNamespace('zipkin');
+clsBluebird(ns, bluebird);
 
-      var ctxImpl = new CLSContext()
-      var endpoint = options.zipkinURL
-      var serviceName = options.zipkinServiceName + '_redis'
+bluebird.promisifyAll(redis)
 
-      var recorder = new zipkin.BatchRecorder({
-        logger: new logger.HttpLogger({
-          endpoint: endpoint + '/api/v1/spans'
-        })
-      });
-      var tracer = new zipkin.Tracer({localServiceName: serviceName, ctxImpl: ctxImpl, recorder: recorder})
-      newClient = zipkinClient(tracer, Redis, options)
-    } else {
-      newClient = new Redis(options)
-    }
-    newClient.on("error", errorHandler)
-    return newClient;
-  };
+exports["_newCache"] = function (options) {
+  // var newClient = new Redis(options);
+  var zipkinFlag = options.zipkinEnable
+  var zipkinRedisFlag = options.zipkinRedis
+  var newClient = null
+
+  if (zipkinFlag === "true" && zipkinRedisFlag === "true") {
+    var zipkin = require('zipkin')
+    var logger = require('zipkin-transport-http')
+    var CLSContext = require('zipkin-context-cls');
+    var zipkinClient = require('zipkin-instrumentation-redis')
+
+    var ctxImpl = new CLSContext()
+    var endpoint = options.zipkinURL
+    var serviceName = options.zipkinServiceName + '_redis'
+
+    var recorder = new zipkin.BatchRecorder({
+      logger: new logger.HttpLogger({
+        endpoint: endpoint + '/api/v1/spans'
+      })
+    });
+    var tracer = new zipkin.Tracer({ localServiceName: serviceName, ctxImpl: ctxImpl, recorder: recorder })
+    newClient = zipkinClient(tracer, redis, options)
+  } else {
+    newClient = redis.createClient(options);
+  }
+
+  newClient.on("error", errorHandler)
+
+  return new Promise(function (resolve, reject) {
+    newClient.on("ready", function () {
+      resolve(newClient);
+    });
+
+    newClient.on("error", function (err) {
+      reject(err);
+    });
+  });
 };
 
-var errorHandler = function(err) {
+exports["_duplicateCache"] = function (client, options) {
+  if (options === undefined) {
+    return client.duplicateAsync();
+  } else {
+    return client.duplicateAsync(options);
+  }
+}
+
+var errorHandler = function (err) {
   if (err) {
     console.log("Redis connection lost", err);
   }
 };
 
-var setKeyJ = function(client) {
-  return function(key) {
-    return function(value) {
-      return client.set(key, value);
-    };
-  };
+exports["setJ"] = function (client, key, value, px, options) {
+  var allArgs = [key, value];
+
+  if (px != "") {
+    allArgs.push("PX");
+    allArgs.push(px);
+  }
+
+  if (options != "") {
+    allArgs.push(options);
+  }
+
+  return client.setAsync(allArgs)
 }
 
-var setexJ = function(client) {
-  return function(key) {
-    return function(value) {
-      return function(ttl) {
-        return client.setex(key, ttl, value);
-      };
-    };
-  };
+exports["getJ"] = function (client, key) {
+  return client.getAsync(key);
 };
 
-var setJ = function(client) {
-  return function(arr) {
-    return client.set(arr)
-  }
-}
-
-var getKeyJ = function(client) {
-  return function(key) {
-    return client.get(key);
-  };
+exports["existsJ"] = function (client, key) {
+  return client.existsAsync(key);
 };
 
-var delKeyJ = function(client) {
-  return function(key) {
-    return client.del(key);
-  };
+exports["delJ"] = function (client, key) {
+  return client.delAsync(key);
 };
 
-var expireJ = function(client) {
-  return function(key) {
-    return function(ttl) {
-      return client.expire(key, ttl);
-    }
-  }
+exports["expireJ"] = function (client, key, ttl) {
+  return client.expireAsync(key, ttl);
 }
 
-var incrJ = function(client) {
-  return function(key) {
-    return client.incr(key, callback);
-  }
+exports["incrJ"] = function (client, key) {
+  return client.incrAsync(key);
 }
 
-var callback = function(err, value) { return; }
-
-var setHashJ = function(client) {
-  return function(key) {
-    return function(value) {
-      return client.hmset(key, value);
-    }
-  }
+exports["incrbyJ"] = function (client, key, by) {
+  return client.incrbyAsync(key, by);
 }
 
-var getHashKeyJ = function(client) {
-  return function(key) {
-    return function(field) {
-      return client.hget(key, field, callback);
-    }
-  }
+exports["publishJ"] = function (client, channel, message) {
+  return client.publishAsync(channel, message);
 }
 
-var publishToChannelJ = function(client) {
-  return function(channel) {
-    return function(message) {
-      return client.publish(channel, message);
-    }
+exports["subscribeJ"] = function (client, channels) {
+  return client.subscribeAsync(channels);
+}
+
+exports["setMessageHandlerJ"] = function (client, handler) {
+  return function () {
+    client.on("message", function (channelName, channelData) {
+      handler(channelName)(channelData)()
+    });
   };
 }
-
-var subscribeJ = function(client) {
-  return function(channel) {
-    return client.subscribe(channel, callback);
-  }
-}
-
-var getDefaultRetryStratergyJ = function() {
-  return function(options) {
-    return options.try_after * 1000;
-  }
-}
-
-var setMessageHandlerJ = function (client) {
-  return function (handler) {
-    return function () {
-      return new Promise(function (resolve, reject) {
-        try {
-          client.on('message', function (channel, message) {
-            handler(channel)(message)();
-          })
-          resolve();
-        } catch (e) {
-          reject(e);
-        }
-      })
-    }
-  }
-}
-
-exports._newCache = _newCache;
-exports.setJ = setJ;
-exports.setKeyJ = setKeyJ;
-exports.getKeyJ = getKeyJ;
-exports.setexJ = setexJ;
-exports.delKeyJ = delKeyJ;
-exports.expireJ = expireJ;
-exports.incrJ = incrJ;
-exports.setHashJ = setHashJ;
-exports.getHashKeyJ = getHashKeyJ;
-exports.publishToChannelJ = publishToChannelJ;
-exports.subscribeJ = subscribeJ;
-exports.setMessageHandlerJ = setMessageHandlerJ;
