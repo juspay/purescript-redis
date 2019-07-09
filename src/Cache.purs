@@ -19,25 +19,51 @@
  along with this program. If not, see <https://www.gnu.org/licenses/agpl.html>.
 -}
 
-module Cache where
+module Cache
+ ( module Cache.Types
+ , db
+ , del
+ , duplicateConn
+ , exists
+ , expire
+ , get
+ , host
+ , incr
+ , incrby
+ , newConn
+ , port
+ , publish
+ , retryStrategy
+ , set
+ , setMessageHandler
+ , socketKeepAlive
+ , subscribe
+ , tryAfter
+ , zipkinEnable
+ , zipkinRedis
+ , zipkinServiceName
+ , zipkinURL
+ ) where
 
-import Control.Promise (Promise, toAff, toAffE)
+import Cache.Internal (isNotZero, readStringMaybe)
+import Cache.Types (CacheConn, CacheConnOpts, SetOptions(..))
+import Control.Promise (Promise, toAff)
+import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either)
+import Data.Function.Uncurried (Fn2, Fn3, Fn5, runFn2, runFn3, runFn5)
+import Data.Int (round)
+import Data.Maybe (Maybe(..), maybe)
+import Data.Newtype (unwrap)
 import Data.Options (Option, Options, opt, options)
+import Data.Time.Duration (Milliseconds, Seconds)
 import Effect (Effect)
-import Effect.Aff (Aff, attempt)
-import Effect.Class (liftEffect)
-import Effect.Exception (Error)
-import Foreign (Foreign)
-import Prelude (($), (<<<), Unit)
-
-foreign import data CacheConn :: Type
-
-data CacheConnOpts
+import Effect.Aff (Aff, Error, attempt)
+import Foreign (Foreign, isNull)
+import Foreign.NullOrUndefined (undefined)
+import Prelude (Unit, map, show, void, ($), (<<<))
 
 host :: Option CacheConnOpts String
 host = opt "host"
-
 port :: Option CacheConnOpts Int
 port = opt "port"
 
@@ -47,17 +73,18 @@ db = opt "db"
 socketKeepAlive :: Option CacheConnOpts Boolean
 socketKeepAlive = opt "socket_keepalive"
 
-sentinels :: Option CacheConnOpts (Array { host :: String, port :: Int })
-sentinels = opt "sentinels"
+-- sentinels :: Option CacheConnOpts (Array { host :: String, port :: Int })
+-- sentinels = opt "sentinels"
 
-name :: Option CacheConnOpts String
-name = opt "name"
+-- name :: Option CacheConnOpts String
+-- name = opt "name"
+
+tryAfter :: Option CacheConnOpts Int
+tryAfter = opt "try_after"
 
 retryStrategy :: Option CacheConnOpts (CacheConnOpts -> Int)
-retryStrategy = opt "retryStrategy"
-
-logger :: Option CacheConnOpts Foreign
-logger = opt "logger"
+retryStrategy = opt "retry_strategy"
+-- retryStrategy = opt "retryStrategy"
 
 zipkinEnable :: Option CacheConnOpts String
 zipkinEnable = opt "zipkinEnable"
@@ -71,58 +98,60 @@ zipkinURL = opt "zipkinURL"
 zipkinServiceName :: Option CacheConnOpts String
 zipkinServiceName = opt "zipkinServiceName"
 
-foreign import setJ :: CacheConn -> Array String -> Promise String
-foreign import setKeyJ :: CacheConn -> String -> String -> Promise String
-foreign import getKeyJ :: CacheConn -> String -> Promise String
-foreign import setexJ :: CacheConn -> String -> String -> String -> Promise String
-foreign import delKeyJ :: CacheConn -> Array String -> Promise String
-foreign import expireJ :: CacheConn -> String -> String -> Promise String
-foreign import incrJ :: CacheConn -> String -> Promise String
-foreign import setHashJ :: CacheConn -> String -> String -> Promise String
-foreign import getHashKeyJ :: CacheConn -> String -> String -> Promise String
-foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
-foreign import subscribeJ :: CacheConn -> String -> Promise String
-foreign import setMessageHandlerJ :: CacheConn -> (String -> String -> Effect Unit) -> Effect (Promise String)
-foreign import _newCache :: Foreign -> Effect CacheConn
+foreign import setJ :: Fn5 CacheConn String String String String (Promise Foreign)
+foreign import getJ :: Fn2 CacheConn String (Promise Foreign)
+foreign import existsJ :: Fn2 CacheConn String (Promise Int)
+foreign import delJ :: Fn2 CacheConn (Array String) (Promise Int)
+foreign import expireJ :: Fn3 CacheConn String Int (Promise Int)
+foreign import incrJ :: Fn2 CacheConn String (Promise Int)
+foreign import incrbyJ :: Fn3 CacheConn String Int (Promise Int)
+foreign import publishJ :: Fn3 CacheConn String String (Promise Int)
+foreign import subscribeJ :: Fn2 CacheConn (Array String) (Promise String)
+foreign import setMessageHandlerJ :: Fn2 CacheConn (String -> String -> Effect Unit) (Effect Unit)
+foreign import _newCache :: Foreign -> Promise CacheConn
+foreign import _duplicateCache :: Fn2 CacheConn Foreign (Promise CacheConn)
 
-getConn :: Options CacheConnOpts -> Aff CacheConn
-getConn = liftEffect <<< _newCache <<< options
+newConn :: Options CacheConnOpts -> Aff (Either Error CacheConn)
+newConn = attempt <<< toAff <<< _newCache <<< options
 
-set :: CacheConn -> Array String -> Aff (Either Error String)
-set cacheConn arr = attempt $ toAff $ setJ cacheConn arr
+duplicateConn :: CacheConn -> Maybe (Options CacheConnOpts) -> Aff (Either Error CacheConn)
+duplicateConn cacheConn Nothing     = attempt <<< toAff $ runFn2 _duplicateCache cacheConn undefined
+duplicateConn cacheConn (Just opts) = attempt <<< toAff $ runFn2 _duplicateCache cacheConn (options opts)
 
-setKey :: CacheConn -> String -> String -> Aff (Either Error String)
-setKey cacheConn key value = attempt $ toAff $ setKeyJ cacheConn key value
+set :: CacheConn -> String -> String -> Maybe Milliseconds -> SetOptions -> Aff (Either Error Boolean)
+set cacheConn key value mExp opts =
+  attempt <<< map parseSetResult <<< toAff $ runFn5 setJ cacheConn key value (maybe "" msToString mExp) (show opts)
+  where
+        msToString = show <<< round <<< unwrap
 
-setex :: CacheConn -> String -> String -> String -> Aff (Either Error String)
-setex cacheConn key value ttl = attempt $ toAff $ setexJ cacheConn key value ttl
+        parseSetResult res | isNull res = false -- Failed because exists (when NX) or not exists (when EX)
+        parseSetResult res              = case readStringMaybe res of
+                                               Just "OK" -> true  -- All good
+                                               otherwise -> false -- This should not happen
 
-getKey :: CacheConn -> String -> Aff (Either Error String)
-getKey cacheConn key = attempt $ toAff $ getKeyJ cacheConn key
+get :: CacheConn -> String -> Aff (Either Error (Maybe String))
+get cacheConn key = attempt <<< map readStringMaybe <<< toAff $ runFn2 getJ cacheConn key
 
-delKey :: CacheConn -> String -> Aff (Either Error String)
-delKey cacheConn key = attempt $ toAff $ delKeyJ cacheConn [key]
+exists :: CacheConn -> String -> Aff (Either Error Boolean)
+exists cacheConn = attempt <<< map isNotZero <<< toAff <<< runFn2 existsJ cacheConn
 
-delKeyList :: CacheConn -> Array String -> Aff (Either Error String)
-delKeyList cacheConn key = attempt $ toAff $ delKeyJ cacheConn key
+del :: CacheConn -> NonEmptyArray String -> Aff (Either Error Int)
+del cacheConn keys = attempt <<< toAff $ runFn2 delJ cacheConn (toArray keys)
 
-expire :: CacheConn -> String -> String -> Aff (Either Error String)
-expire cacheConn key ttl = attempt $ toAff $ expireJ cacheConn key ttl
+expire :: CacheConn -> String -> Seconds -> Aff (Either Error Boolean)
+expire cacheConn key ttl = attempt <<< map isNotZero <<< toAff $ runFn3 expireJ cacheConn key (round <<< unwrap $ ttl)
 
-incr :: CacheConn -> String -> Aff (Either Error String)
-incr cacheConn key = attempt $ toAff $ incrJ cacheConn key
+incr :: CacheConn -> String -> Aff (Either Error Int)
+incr cacheConn key = attempt <<< toAff $ runFn2 incrJ cacheConn key
 
-setHash :: CacheConn -> String -> String -> Aff (Either Error String)
-setHash cacheConn key value = attempt $ toAff $ setHashJ cacheConn key value
+incrby :: CacheConn -> String -> Int -> Aff (Either Error Int)
+incrby cacheConn key by = attempt <<< toAff $ runFn3 incrbyJ cacheConn key by
 
-getHashKey :: CacheConn -> String -> String -> Aff (Either Error String)
-getHashKey cacheConn key field = attempt $ toAff $ getHashKeyJ cacheConn key field
+publish :: CacheConn -> String -> String -> Aff (Either Error Int)
+publish cacheConn channel message = attempt <<< toAff $ runFn3 publishJ cacheConn channel message
 
-publishToChannel :: CacheConn -> String -> String -> Aff (Either Error String)
-publishToChannel cacheConn channel message = attempt $ toAff $ publishToChannelJ cacheConn channel message
+subscribe :: CacheConn -> NonEmptyArray String -> Aff (Either Error Unit)
+subscribe cacheConn channel = attempt <<< void <<< toAff $ runFn2 subscribeJ cacheConn (toArray channel)
 
-subscribe :: CacheConn -> String -> Aff (Either Error String)
-subscribe cacheConn channel = attempt $ toAff $ subscribeJ cacheConn channel
-
-setMessageHandler :: CacheConn -> (String -> String -> Effect Unit) -> Aff (Either Error String)
-setMessageHandler cacheConn f = attempt $ toAffE $ setMessageHandlerJ cacheConn f
+setMessageHandler :: forall e eff. CacheConn -> (String -> String -> Effect Unit) -> Effect Unit
+setMessageHandler cacheConn f = runFn2 setMessageHandlerJ cacheConn f
