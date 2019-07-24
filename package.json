@@ -19,6 +19,6 @@
   "homepage": "https://github.com/juspay/purescript-redis/README.md",
   "dependencies": {
     "big-integer": "^1.6.43",
-    "ioredis": "^4.9.1"
+    "ioredis": "^4.11.2"
   }
 }
