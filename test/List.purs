@@ -2,7 +2,7 @@ module Test.List where
 
 import Prelude
 
-import Cache (CacheConn, del)
+import Cache (class CacheConn, del)
 import Cache.Internal (checkValue)
 import Cache.List (lindex, lpop, lpush, rpop, rpush)
 import Data.Array.NonEmpty (singleton)
@@ -12,7 +12,7 @@ import Test.Spec (Spec, describe, it)
 testKey :: String
 testKey = "test-list"
 
-listTest :: CacheConn -> Spec Unit
+listTest :: forall a. CacheConn a => a -> Spec Unit
 listTest cacheConn =
   describe "List" do
      it "works" do

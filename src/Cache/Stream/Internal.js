@@ -29,34 +29,34 @@
 
 // Connection/Multi, function name as string, args as an array
 function dispatch(object, func, args) {
-  if (object.constructor.name === "Multi") {
+  if (object.constructor.name === "Pipeline") {
     // The Multi object needs to provide an Eff with the actual call
-    return function () {
+    return function() {
       return object[func](args);
     };
   } else {
-    // The Connection object needs to call the corresponding *Async() function
+    // The Connection object just needs to call the corresponding function
     // which will provide a Promise object
-    return object[func + "Async"](args);
+    return object[func](args);
   }
 }
 
 // Not exposing MAXLEN, assuming that will be done with an explicit xtrim
-exports["xaddJ"] = function (client, key, id, args) {
+exports["xaddJ"] = function(client, key, id, args) {
   var allArgs = [key, id].concat(args);
   return dispatch(client, "xadd", allArgs);
 }
 
-exports["xdelJ"] = function (client, key, id) {
+exports["xdelJ"] = function(client, key, id) {
   return dispatch(client, "xdel", [key, id]);
 }
 
-exports["xlenJ"] = function (client, key) {
+exports["xlenJ"] = function(client, key) {
   return dispatch(client, "xlen", key);
 }
 
 // Assumes no count if count == 0
-exports["xrangeJ"] = function (client, key, start, end, count) {
+exports["xrangeJ"] = function(client, key, start, end, count) {
   if (count > 0) {
     return dispatch(client, "xrange", [key, start, end, "COUNT", count]);
   } else {
@@ -65,7 +65,7 @@ exports["xrangeJ"] = function (client, key, start, end, count) {
 }
 
 // Assumes no count if count == 0
-exports["xrevrangeJ"] = function (client, key, start, end, count) {
+exports["xrevrangeJ"] = function(client, key, start, end, count) {
   if (count > 0) {
     return dispatch(client, "xrevrange", [key, start, end, "COUNT", count]);
   } else {
@@ -74,7 +74,7 @@ exports["xrevrangeJ"] = function (client, key, start, end, count) {
 }
 
 // Assumes no count if count == 0
-exports["xreadJ"] = function (client, count, streams, ids) {
+exports["xreadJ"] = function(client, count, streams, ids) {
   var allArgs = [];
 
   if (count > 0) {
@@ -88,7 +88,7 @@ exports["xreadJ"] = function (client, count, streams, ids) {
   return dispatch(client, "xread", allArgs);
 }
 
-exports["xtrimJ"] = function (client, key, strategy, approx, len) {
+exports["xtrimJ"] = function(client, key, strategy, approx, len) {
   if (approx) {
     return dispatch(client, "xtrim", [key, strategy, "~", len]);
   } else {
@@ -98,24 +98,24 @@ exports["xtrimJ"] = function (client, key, strategy, approx, len) {
 
 // Consumer group API
 
-exports["xgroupCreateJ"] = function (client, key, groupName, fromId) {
+exports["xgroupCreateJ"] = function(client, key, groupName, fromId) {
   return dispatch(client, "xgroup", ["CREATE", key, groupName, fromId]);
 }
 
-exports["xgroupDestroyJ"] = function (client, key, groupName) {
+exports["xgroupDestroyJ"] = function(client, key, groupName) {
   return dispatch(client, "xgroup", ["DESTROY", key, groupName]);
 }
 
-exports["xgroupDelConsumerJ"] = function (client, key, groupName, consumerName) {
+exports["xgroupDelConsumerJ"] = function(client, key, groupName, consumerName) {
   return dispatch(client, "xgroup", ["DELCONSUMER", key, groupName, consumerName]);
 }
 
-exports["xgroupSetIdJ"] = function (client, key, groupName, entryId) {
+exports["xgroupSetIdJ"] = function(client, key, groupName, entryId) {
   return dispatch(client, "xgroup", ["SETID", key, groupName, entryId]);
 }
 
 // Assumes no count if count == 0
-exports["xreadGroupJ"] = function (client, groupName, consumerName, count, noack, streams, ids) {
+exports["xreadGroupJ"] = function(client, groupName, consumerName, count, noack, streams, ids) {
   var allArgs = ["GROUP", groupName, consumerName];
 
   if (count > 0) {
@@ -133,14 +133,14 @@ exports["xreadGroupJ"] = function (client, groupName, consumerName, count, noack
   return dispatch(client, "xreadgroup", allArgs);
 }
 
-exports["xackJ"] = function (client, key, groupName, ids) {
+exports["xackJ"] = function(client, key, groupName, ids) {
   var allArgs = [key, groupName].concat(ids);
   return dispatch(client, "xack", allArgs);
 }
 
 // Ignoring the additional optional arguments except FORCE as they do not seem
 // immediately useful
-exports["xclaimJ"] = function (client, key, groupName, consumerName, minIdleTime, ids, force) {
+exports["xclaimJ"] = function(client, key, groupName, consumerName, minIdleTime, ids, force) {
   var allArgs = [key, groupName, consumerName, minIdleTime].concat(ids);
 
   if (force) {
