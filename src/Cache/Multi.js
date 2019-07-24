@@ -23,14 +23,14 @@
 * along with this program. If not, see <https://www.gnu.org/licenses/agpl.html>.
 */
 
-exports["newMultiJ"] = function (client) {
-  return function () {
+exports["newMultiJ"] = function(client) {
+  return function() {
     return client.multi();
   }
 }
 
-exports["setMultiJ"] = function (key, value, px, options, multi) {
-  return function () {
+exports["setMultiJ"] = function(key, value, px, options, multi) {
+  return function() {
     var allArgs = [key, value];
 
     if (px != "") {
@@ -46,90 +46,90 @@ exports["setMultiJ"] = function (key, value, px, options, multi) {
   }
 }
 
-exports["getMultiJ"] = function (key, multi) {
-  return function () {
+exports["getMultiJ"] = function(key, multi) {
+  return function() {
     return multi.get(key);
   }
 }
 
-exports["delMultiJ"] = function (key, multi) {
-  return function () {
+exports["delMultiJ"] = function(key, multi) {
+  return function() {
     return multi.del(key);
   }
 }
 
-exports["expireMultiJ"] = function (key, ttl, multi) {
-  return function () {
-    return multi.expire(key, ttl);
+exports["expireMultiJ"] = function(key, ttl, multi) {
+  return function() {
+    return multi.expire(key,ttl);
   }
 }
 
-exports["incrMultiJ"] = function (key, multi) {
-  return function () {
+exports["incrMultiJ"] = function(key, multi) {
+  return function() {
     return multi.incr(key);
   }
 }
 
-exports["hsetMultiJ"] = function (key, field, value, multi) {
-  return function () {
+exports["hsetMultiJ"] = function(key, field, value, multi) {
+  return function() {
     return multi.hset(key, field, value);
   }
 }
 
-exports["hgetMultiJ"] = function (key, field, multi) {
-  return function () {
+exports["hgetMultiJ"] = function(key, field, multi) {
+  return function() {
     return multi.hget(key, field);
   }
 }
 
-exports["publishMultiJ"] = function (channel) {
-  return function (message) {
-    return function (multi) {
-      return function () {
-        return multi.publish(channel, message);
+exports["publishMultiJ"] = function(channel) {
+  return function(message) {
+    return function(multi) {
+      return function() {
+        return multi.publish(channel,message);
       }
     }
   }
 }
 
-exports["subscribeMultiJ"] = function (channel, multi) {
-  return function () {
+exports["subscribeMultiJ"] = function(channel, multi) {
+  return function() {
     return multi.subscribe(channel);
   }
 }
 
-exports["rpopMultiJ"] = function (listName, value, multi) {
-  return function () {
-    return multi.rpop(listName, value);
+exports["rpopMultiJ"] = function(listName, value, multi) {
+  return function() {
+    return multi.rpop(listName,value);
   }
 }
 
-exports["rpushMultiJ"] = function (listName, value, multi) {
-  return function () {
-    return multi.rpush(listName, value);
+exports["rpushMultiJ"] = function(listName, value, multi) {
+  return function() {
+    return multi.rpush(listName,value);
   }
 }
 
-exports["lpopMultiJ"] = function (listName) {
-  return function (multi) {
-    return function () {
+exports["lpopMultiJ"] = function(listName) {
+  return function(multi) {
+    return function() {
       return multi.lpop(listName);
     }
   }
 }
 
-exports["lpushMultiJ"] = function (listName, multi) {
-  return function () {
+exports["lpushMultiJ"] = function(listName, multi) {
+  return function() {
     return multi.lpush(listName);
   }
 }
 
-exports["lindexMultiJ"] = function (listName, value, multi) {
-  return function () {
+exports["lindexMultiJ"] = function(listName, value, multi) {
+  return function() {
     return multi.lindex(listName, value);
   }
 }
 
-exports["execMultiJ"] = function (multi) {
-  return multi.execAsync();
+exports["execMultiJ"] = function(multi) {
+  return multi.exec();
 }

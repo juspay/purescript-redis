@@ -1,12 +1,12 @@
 module Test.PubSub where
 
-import Cache (CacheConn, duplicateConn, publish, setMessageHandler, subscribe)
+import Cache (SimpleConn, duplicateConn, publish, setMessageHandler, subscribe)
 import Cache.Internal (checkValue)
 import Data.Array.NonEmpty (singleton)
 import Data.Either (Either(..), fromRight)
 import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Milliseconds(..))
-import Effect.Aff (delay, launchAff_)
+import Effect.Aff (delay)
 import Effect.Class (liftEffect)
 import Partial.Unsafe (unsafePartial)
 import Prelude (Unit, bind, discard, pure, show, unit, ($))
@@ -16,7 +16,7 @@ import Test.Spec.Assertions (fail, shouldEqual)
 testChannel :: String
 testChannel = "test-channel"
 
-pubsubTest :: CacheConn -> Spec Unit
+pubsubTest :: SimpleConn -> Spec Unit
 pubsubTest cacheConn =
   describe "Pub/Sub" do
      it "works" do
@@ -29,10 +29,10 @@ pubsubTest cacheConn =
              Left err -> fail $ show err
 
         let subConn = unsafePartial $ fromRight eSubConn
-
-        liftEffect $ setMessageHandler subConn $ \channel message -> launchAff_ do
-           channel `shouldEqual` testChannel
-           message `shouldEqual` "bar"
+        
+        liftEffect $ setMessageHandler subConn $ \channel message -> do
+          channel `shouldEqual` testChannel
+          message `shouldEqual` "bar"
 
         v1 <- subscribe subConn $ singleton testChannel
         checkValue v1 unit

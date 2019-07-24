@@ -1,6 +1,6 @@
 module Test.Stream where
 
-import Cache (CacheConn, del)
+import Cache (class CacheConn, del)
 import Cache.Internal (checkRight, checkValue)
 import Cache.Stream (firstEntryId, newEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
 import Cache.Types (Entry(..), EntryID(..), TrimStrategy(..))
@@ -29,7 +29,7 @@ testConsumer = "test-consumer"
 testId :: EntryID
 testId = unsafePartial $ fromJust $ newEntryId (fromInt 9999999) (fromInt 0)
 
-streamTest :: CacheConn -> Spec Unit
+streamTest :: forall a. CacheConn a => a -> Spec Unit
 streamTest cacheConn =
   describe "Stream" do
      -- FIXME: break up at commented "it"s on newer purescript-spec which can

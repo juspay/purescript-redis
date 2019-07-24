@@ -1,7 +1,8 @@
 module Test.Basic where
 
-import Cache (CacheConn, SetOptions(..), del, exists, expire, get, incr, incrby, set)
+import Cache (SetOptions(..), del, exists, expire, get, incr, incrby, set)
 import Cache.Internal (checkValue)
+import Cache.Types (class CacheConn)
 import Data.Array.NonEmpty (singleton, (:))
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
@@ -12,15 +13,15 @@ import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail)
 
 testKey :: String
-testKey = "test-basic"
+testKey = "test-basic{test2}"
 
 testKey1 :: String
-testKey1 = "test-basic-1"
+testKey1 = "test-basic-1{test2}"
 
 testKey2 :: String
-testKey2 = "test-basic-2"
+testKey2 = "test-basic-2{test2}"
 
-basicTest :: CacheConn -> Spec Unit
+basicTest :: forall a. CacheConn a => a -> Spec Unit
 basicTest cacheConn =
   describe "Basic" do
      it "works" do
@@ -58,12 +59,6 @@ basicTest cacheConn =
         v8 <- incrby cacheConn testKey1 2
         checkValue v7 1
         checkValue v8 3
-
-        v9 <- set cacheConn testKey1 "3" Nothing IfNotExist
-        checkValue v9 false
-
-        v10 <- set cacheConn testKey1 "3" Nothing IfExist
-        checkValue v10 true
 
         -- Clean up
         _ <- del cacheConn $ testKey : testKey1 : singleton testKey2

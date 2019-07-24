@@ -26,8 +26,9 @@ module Cache.Multi
   ) where
 
 import Cache.Stream.Internal (itemsToArray, xackJ, xaddJ, xclaimJ, xdelJ, xgroupCreateJ, xgroupDelConsumerJ, xgroupDestroyJ, xgroupSetIdJ, xlenJ, xrangeJ, xreadGroupJ, xreadJ, xtrimJ)
-import Cache.Types (CacheConn, EntryID(..), Item, SetOptions, TrimStrategy)
+import Cache.Types (class CacheConn, EntryID(..), Item, SetOptions, TrimStrategy)
 import Control.Promise (Promise, toAff)
+import Data.Array (concat, filter)
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either(..))
 import Data.Function.Uncurried (Fn2, Fn3, Fn4, Fn5, runFn2, runFn3, runFn4, runFn5, runFn7)
@@ -38,12 +39,12 @@ import Data.Time.Duration (Milliseconds(..), Seconds)
 import Data.Tuple (Tuple, fst, snd)
 import Effect (Effect)
 import Effect.Aff (Aff, Error, attempt, error)
-import Foreign (Foreign)
-import Prelude (map, pure, show, ($), (<$>), (<<<))
+import Foreign (Foreign, isNull)
+import Prelude (map, not, pure, show, ($), (<$>), (<<<))
 
 foreign import data Multi :: Type
 
-foreign import newMultiJ :: CacheConn -> Effect Multi
+foreign import newMultiJ :: forall a. a -> Effect Multi
 
 foreign import setMultiJ :: Fn5 String String String String Multi (Effect Multi)
 foreign import getMultiJ :: Fn2 String Multi (Effect Multi)
@@ -59,13 +60,22 @@ foreign import rpushMultiJ :: Fn3 String String Multi (Effect Multi)
 foreign import lpopMultiJ :: Fn2 String Multi (Effect Multi)
 foreign import lpushMultiJ :: Fn3 String String Multi (Effect Multi)
 foreign import lindexMultiJ :: Fn3 String Int Multi (Effect Multi)
-foreign import execMultiJ :: Multi -> Promise (Array Foreign)
+foreign import execMultiJ :: Multi -> Promise (Array (Array Foreign))
 
-newMulti :: CacheConn -> Effect Multi
+newMulti :: forall a. CacheConn a => a -> Effect Multi
 newMulti = newMultiJ
 
+-- execMultiJ returns an array of [err, val]. In the Multi case, we expect all
+-- 'err's to be null, so the filter below will result in just all the values
+-- being returned. If something goes horribly wrong, the expectation is that
+-- the 'err' will be non-null but the 'val' will be null, so the length of the
+-- array returned is still consistent with the number of commands dispatched in
+-- the MULTI. This is all a bit ugly, but since we're forced to work with
+-- Foreigns here at the moment, it will have to do.
 execMulti :: Multi -> Aff (Either Error (Array Foreign))
-execMulti = attempt <<< toAff <<< execMultiJ
+execMulti = attempt <<< map filterNulls <<< toAff <<< execMultiJ
+  where
+        filterNulls = filter (not isNull) <<< concat
 
 setMulti :: String -> String -> Maybe Milliseconds -> SetOptions -> Multi -> Effect Multi
 setMulti key value mExp opts = runFn5 setMultiJ key value (maybe "" msToString mExp) (show opts)
