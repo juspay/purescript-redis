@@ -13,6 +13,7 @@ import Test.Hash (hashTest)
 import Test.List (listTest)
 import Test.Multi (multiTest)
 import Test.PubSub (pubsubTest)
+import Test.SortedSet (sortedSetTest)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (fail)
 import Test.Spec.Reporter (consoleReporter)
@@ -34,6 +35,7 @@ startTest = do
               multiTest cacheConn
               streamTest cacheConn
               pubsubTest cacheConn
+              sortedSetTest cacheConn
            Left err        -> do
               it "fails" do
                  fail $ show err
@@ -46,6 +48,7 @@ startTest = do
               hashTest cacheConn
               multiTest cacheConn
               streamTest cacheConn
+              sortedSetTest cacheConn
            Left err        -> do
               it "fails" do
                  fail $ show err

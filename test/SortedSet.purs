@@ -1,0 +1,46 @@
+module Test.SortedSet where
+
+import Cache.SortedSet
+
+import Cache (class CacheConn, SetOptions(..), del)
+import Cache.Internal (checkValue)
+import Cache.Types (Item)
+import Data.Array.NonEmpty (singleton)
+import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple(..))
+import Debug.Trace (spy)
+import Prelude (Unit, bind, discard, pure, show, unit, ($), (<$>))
+import Test.Spec (Spec, describe, it)
+
+testKey :: String
+testKey = "test-sortedSet"
+
+testId :: String
+testId = "test-uniqueId"
+
+testId1 :: String
+testId1 = "test-uniqueId-1"
+
+sortedSetTest :: forall a. CacheConn a => a -> Spec Unit
+sortedSetTest cacheConn =
+  describe "SortedSet" do
+     it "works" do
+        _  <- del cacheConn $ singleton testKey
+
+        v0 <- zadd cacheConn testKey NoOptions Default [ Tuple 1.0 testId, Tuple 1.0 testId1 ]
+        v1 <- zadd cacheConn testKey IfNotExist Default [ Tuple 1.0 testId ]
+        v2 <- zadd cacheConn testKey IfExist Changed [ Tuple 2.0 testId, Tuple 3.0 testId1 ]
+        v3 <- zrange cacheConn testKey 0 2
+        v4 <- zincrby cacheConn testKey 2.0 testId
+        v5 <- zrem cacheConn testKey [testId, testId1]
+
+        checkValue v0 2
+        checkValue v1 0
+        checkValue v2 2
+        checkValue v3 [Just testId, Just testId1]
+        checkValue v4 (Just 4.0)
+        checkValue v5 2
+
+        -- Clean up
+        _  <- del cacheConn $ singleton testKey
+        pure unit
