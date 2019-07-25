@@ -1,7 +1,7 @@
 module Test.Hash where
 
 import Cache (class CacheConn, del)
-import Cache.Hash (hget, hset)
+import Cache.Hash (hget, hset, hsetnx)
 import Cache.Internal (checkValue)
 import Data.Array.NonEmpty (singleton)
 import Data.Maybe (Maybe(..))
@@ -27,6 +27,14 @@ hashTest cacheConn =
         checkValue v2 Nothing
         v3 <- hget cacheConn testKey "bar"
         checkValue v3 Nothing
+
+        v4 <- hsetnx cacheConn testKey "foonx" "1"
+        v5 <- hsetnx cacheConn testKey "foonx" "2"
+        v6 <- hget cacheConn testKey "foonx"
+
+        checkValue v4 true
+        checkValue v5 false
+        checkValue v6 (Just "1")
 
         -- Clean up
         _  <- del cacheConn $ singleton testKey
