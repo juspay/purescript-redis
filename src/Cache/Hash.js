@@ -36,3 +36,11 @@ exports["hgetJ"] = function(client, key, field) {
 exports["hsetnxJ"] = function (client, key, field, value) {
   return client.hsetnx(key, field, value);
 }
+
+exports["hgetallJ"] = function (client, key) {
+  return client.hgetall(key);
+}
+
+exports["hincrbyJ"] = function (client, key, field, increment) {
+  return client.hincrby(key, field, increment);
+}
