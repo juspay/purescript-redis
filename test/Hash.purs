@@ -1,10 +1,12 @@
 module Test.Hash where
 
 import Cache (class CacheConn, del)
-import Cache.Hash (hget, hset, hsetnx)
+import Cache.Hash (hget, hgetall, hincrby, hset, hsetnx)
 import Cache.Internal (checkValue)
 import Data.Array.NonEmpty (singleton)
 import Data.Maybe (Maybe(..))
+import Debug.Trace (spy)
+import Foreign.Object (insert, singleton) as Object
 import Prelude (Unit, bind, discard, pure, unit, ($))
 import Test.Spec (Spec, describe, it)
 
@@ -36,6 +38,12 @@ hashTest cacheConn =
         checkValue v5 false
         checkValue v6 (Just "1")
 
+        v7 <- hgetall cacheConn testKey
+        checkValue v7 (Object.insert "foonx" "1" $ Object.singleton "foo" "1")
+
+        v8 <- hincrby cacheConn testKey "foonx" 2
+        checkValue v8 3
+        
         -- Clean up
         _  <- del cacheConn $ singleton testKey
         pure unit
