@@ -1,9 +1,8 @@
 module Test.Stream where
 
 import Cache (class CacheConn, del)
-import Cache.Internal (checkRight, checkValue)
 import Cache.Stream (firstEntryId, newEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xinfogroups, xlen, xpending, xrange, xread, xreadGroup, xrevrange, xtrim)
-import Cache.Types (Entry(..), EntryID(..), GroupInfo(..), PendingTask(..), TrimStrategy(..))
+import Cache.Types (Entry(..), EntryID(..), GroupInfo(..), TrimStrategy(..))
 import Data.Array (index, length, singleton, (!!))
 import Data.Array.NonEmpty (singleton) as NEArray
 import Data.BigInt (fromInt)
@@ -14,6 +13,7 @@ import Data.Tuple.Nested ((/\))
 import Foreign.Object (lookup, size)
 import Partial.Unsafe (unsafePartial)
 import Prelude (Unit, bind, discard, flip, pure, show, unit, ($), (<$>), (<>), (==))
+import Test.Internal (checkRight, checkValue)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
 

@@ -1,7 +1,6 @@
 module Test.Basic where
 
 import Cache (SetOptions(..), del, exists, expire, get, incr, incrby, set)
-import Cache.Internal (checkValue)
 import Cache.Types (class CacheConn)
 import Data.Array.NonEmpty (singleton, (:))
 import Data.Either (Either(..))
@@ -9,6 +8,7 @@ import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Milliseconds(..), Seconds(..))
 import Effect.Aff (delay)
 import Prelude (Unit, bind, discard, pure, show, unit, ($))
+import Test.Internal (checkValue)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail)
 

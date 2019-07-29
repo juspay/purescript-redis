@@ -1,7 +1,6 @@
 module Test.PubSub where
 
 import Cache (SimpleConn, duplicateConn, publish, setMessageHandler, subscribe)
-import Cache.Internal (checkValue)
 import Data.Array.NonEmpty (singleton)
 import Data.Either (Either(..), fromRight)
 import Data.Maybe (Maybe(..))
@@ -10,6 +9,7 @@ import Effect.Aff (delay)
 import Effect.Class (liftEffect)
 import Partial.Unsafe (unsafePartial)
 import Prelude (Unit, bind, discard, pure, show, unit, ($))
+import Test.Internal (checkValue)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
 
