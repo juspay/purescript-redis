@@ -2,12 +2,11 @@ module Test.Hash where
 
 import Cache (class CacheConn, del)
 import Cache.Hash (hget, hgetall, hincrby, hset, hsetnx)
-import Cache.Internal (checkValue)
 import Data.Array.NonEmpty (singleton)
 import Data.Maybe (Maybe(..))
-import Debug.Trace (spy)
 import Foreign.Object (insert, singleton) as Object
 import Prelude (Unit, bind, discard, pure, unit, ($))
+import Test.Internal (checkValue)
 import Test.Spec (Spec, describe, it)
 
 testKey :: String

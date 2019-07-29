@@ -3,10 +3,10 @@ module Test.List where
 import Prelude
 
 import Cache (class CacheConn, del)
-import Cache.Internal (checkValue)
 import Cache.List (lindex, lpop, lpush, rpop, rpush)
 import Data.Array.NonEmpty (singleton)
 import Data.Maybe (Maybe(..))
+import Test.Internal (checkValue)
 import Test.Spec (Spec, describe, it)
 
 testKey :: String

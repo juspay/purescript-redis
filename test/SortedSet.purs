@@ -3,13 +3,11 @@ module Test.SortedSet where
 import Cache.SortedSet
 
 import Cache (class CacheConn, SetOptions(..), del)
-import Cache.Internal (checkValue)
-import Cache.Types (Item)
 import Data.Array.NonEmpty (singleton)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Debug.Trace (spy)
-import Prelude (Unit, bind, discard, pure, show, unit, ($), (<$>))
+import Prelude (Unit, bind, discard, pure, unit, ($))
+import Test.Internal (checkValue)
 import Test.Spec (Spec, describe, it)
 
 testKey :: String
