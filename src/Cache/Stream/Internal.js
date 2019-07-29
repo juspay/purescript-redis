@@ -149,3 +149,11 @@ exports["xclaimJ"] = function(client, key, groupName, consumerName, minIdleTime,
 
   return dispatch(client, "xclaim", allArgs);
 }
+
+exports["xinfogroupsJ"] = function (client, key) {
+  return dispatch(client, "xinfo", ["groups", key]);
+}
+
+exports["xpendingJ"] = function (client, key, groupName, minId, maxId, count) {
+  return dispatch(client, "xpending", [key, groupName, minId, maxId, count]);
+}

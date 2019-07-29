@@ -2,8 +2,8 @@ module Test.Stream where
 
 import Cache (class CacheConn, del)
 import Cache.Internal (checkRight, checkValue)
-import Cache.Stream (firstEntryId, newEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xlen, xrange, xread, xreadGroup, xrevrange, xtrim)
-import Cache.Types (Entry(..), EntryID(..), TrimStrategy(..))
+import Cache.Stream (firstEntryId, newEntryId, xack, xadd, xclaim, xdel, xgroupCreate, xgroupDelConsumer, xgroupDestroy, xgroupSetId, xinfogroups, xlen, xpending, xrange, xread, xreadGroup, xrevrange, xtrim)
+import Cache.Types (Entry(..), EntryID(..), GroupInfo(..), PendingTask(..), TrimStrategy(..))
 import Data.Array (index, length, singleton, (!!))
 import Data.Array.NonEmpty (singleton) as NEArray
 import Data.BigInt (fromInt)
@@ -97,6 +97,11 @@ streamTest cacheConn =
              Right v  -> if v == 0 then pure unit else fail $ "Bad value: " <> show v
              Left err -> fail $ "Bad value: " <> show err
 
+     --it "check group info" do
+        res <- xinfogroups cacheConn testStream
+        -- No groups created at this point
+        checkValue res []
+        
      --it "can create a consumer group" do
         res <- xgroupCreate cacheConn testStream testGroup AfterLastID
         case res of
@@ -109,6 +114,11 @@ streamTest cacheConn =
              Right _ -> fail $ "Group create should not have succeeded on duplicate"
              Left _  -> pure unit
 
+     --it "check pending task" do
+        res <- xpending cacheConn testStream testGroup MinID MaxID 1
+        -- No pending tasks at this point
+        checkValue res []
+
      --it "won't find any entries on reading from the group immediately" do
         val <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testStream NewID]
         case val of
@@ -116,7 +126,7 @@ streamTest cacheConn =
              Left err -> fail $ "Read from group failed: " <> show err
 
      --it "can read from a group" do
-        _   <- xadd cacheConn testStream AutoID $ singleton $ "test" /\ "123"
+        id1 <- xadd cacheConn testStream AutoID $ singleton $ "test" /\ "123"
         val <- xreadGroup cacheConn testGroup testConsumer Nothing false [Tuple testStream NewID]
         case val of
              Right v  -> do
@@ -125,6 +135,18 @@ streamTest cacheConn =
                      Just entries -> checkEntries entries
                      Nothing -> fail "Could not find stream in result"
              Left err -> fail $ "Read from group failed: " <> show err
+
+        checkRight id1
+        let newId = unsafePartial $ fromRight id1
+
+     --it "check group info" do
+        res <- xinfogroups cacheConn testStream
+        -- There should be one pending and one consumer
+        checkValue res $ [ GroupInfo testGroup 1 1 newId ]
+
+     --it "check pending task" do
+        res <- xpending cacheConn testStream testGroup MinID MaxID 1
+        checkRight res
 
      --it "can ack an entry" do
         -- The previous test made sure this value exists

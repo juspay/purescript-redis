@@ -64,6 +64,29 @@ data TrimStrategy = Maxlen
 instance showTrimStrategy :: Show TrimStrategy where
   show Maxlen = "MAXLEN"
 
+type NumberOfConsumers = Int
+type NumberOfPending = Int
+data GroupInfo = GroupInfo String NumberOfConsumers NumberOfPending EntryID
+
+derive instance genericGroupInfo :: Generic GroupInfo _
+instance eqGroupInfo :: Eq GroupInfo where
+    eq = genericEq
+instance showGroupInfo :: Show GroupInfo where
+  show (GroupInfo grpName consumers pending entryId) = "GroupInfo (" <> "grpName: " <> grpName <> ", consumers: " <> show consumers
+                                                         <> ", pending: " <> show pending <> ", lastDeliveredId: " <> show entryId
+                                                         <> ")"
+
+type TimeElapsedSinceDelivery = Int
+type DeliveryCount = Int
+data PendingTask = PendingTask EntryID String TimeElapsedSinceDelivery DeliveryCount
+
+derive instance genericPendingTask :: Generic PendingTask _
+instance eqPendingTask :: Eq PendingTask where
+    eq = genericEq
+instance showPendingTask :: Show PendingTask where
+  show (PendingTask entryId currentOwner timeSinceDelivery deliveryCount) = "PendingTask (" <> "taskId: " <> show entryId <> ", currentOwner: " <> currentOwner <> ", timeSinceDelivery: " <> show timeSinceDelivery
+                                                         <> ", deliveryCount: " <> show deliveryCount
+                                                         <> ")"
 
 -- Cluster-related types
 
