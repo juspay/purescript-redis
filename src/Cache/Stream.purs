@@ -9,17 +9,19 @@ module Cache.Stream
   , xgroupDelConsumer
   , xgroupDestroy
   , xgroupSetId
+  , xpending
   , xlen
   , xrange
   , xread
   , xreadGroup
   , xrevrange
   , xtrim
+  , xinfogroups
   ) where
 
 import Cache.Stream.Internal
 
-import Cache.Types (class CacheConn, Entry(..), EntryID(..), Item, TrimStrategy)
+import Cache.Types (class CacheConn, Entry(..), EntryID(..), GroupInfo(..), Item, PendingTask(..), TrimStrategy)
 import Control.Monad.Except (Except, runExcept)
 import Control.MonadPlus ((>>=))
 import Control.Promise (toAff)
@@ -28,18 +30,18 @@ import Data.Bifunctor (lmap)
 import Data.BigInt (BigInt)
 import Data.BigInt (fromInt, fromString, shl) as BigInt
 import Data.Either (Either(..))
-import Data.Function.Uncurried (runFn2, runFn3, runFn4, runFn5, runFn7)
+import Data.Function.Uncurried (runFn2, runFn3, runFn4, runFn5, runFn6, runFn7)
 import Data.Int (even, odd)
-import Data.Maybe (Maybe(..), fromJust, fromMaybe)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
 import Data.String (Pattern(..), split)
-import Data.Traversable (sequence)
+import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..), fst, snd)
 import Effect.Aff (Aff, attempt)
 import Effect.Exception (Error, error)
-import Foreign (F, Foreign, isNull, readArray, readString)
+import Foreign (F, Foreign, isNull, readArray, readInt, readString)
 import Foreign.Object (Object, empty, fromFoldable)
 import Partial.Unsafe (unsafePartial)
-import Prelude (class Show, Unit, bind, map, pure, show, ($), (&&), (<), (<$>), (<*>), (<<<), (<>), (==), (>=), (>>>))
+import Prelude (class Show, Unit, bind, map, pure, show, ($), (&&), (<), (<$>), (<*>), (<<<), (<>), (==), (>=), (>>>), (||))
 
 -- Streams API
 
@@ -163,6 +165,32 @@ xclaim cacheConn key groupName consumerName idleTimeMs entryIds force = do
   res <- attempt <<< toAff $ runFn7 xclaimJ cacheConn key groupName consumerName idleTimeMs (show <$> entryIds) force
   pure $ res >>= readEntries
 
+xinfogroups :: forall a. CacheConn a => a -> String -> Aff (Either Error (Array GroupInfo))
+xinfogroups cacheConn key = do
+  res <- attempt <<< toAff $ runFn2 xinfogroupsJ cacheConn key
+  pure $ do
+    eres <- res
+    (fgnArr :: Array Foreign) <- (readArray >>> parseWithError) eres
+    (fgnArrs :: Array (Array Foreign)) <- traverse (readArray >>> parseWithError) fgnArr
+    (itemsArrs :: Array GroupInfo) <- traverse readGroupInfo fgnArrs -- >>= map readItems
+    Right itemsArrs
+
+xpending :: forall a. CacheConn a => a -> String -> String -> EntryID -> EntryID -> Int -> Aff (Either Error (Array PendingTask))
+xpending _ _ _ AfterLastID _   _ = pure $ Left $ error "xpending must take a concrete entry ID or MinId or MaxId"
+xpending _ _ _ NewID    _      _ = pure $ Left $ error "xpending must take a concrete entry ID or MinId or MaxId"
+xpending _ _ _ AutoID   _      _ = pure $ Left $ error "xpending must take a concrete entry ID or MinId or MaxId"
+xpending _ _ _ _        AfterLastID _ = pure $ Left $ error "xpending must take a concrete entry ID or MinId or MaxId"
+xpending _ _ _ _        NewID  _ = pure $ Left $ error "xpending must take a concrete entry ID or MinId or MaxId"
+xpending _ _ _ _        AutoID _ = pure $ Left $ error "xpending must take a concrete entry ID or MinId or MaxId"
+xpending cacheConn key grpName minId maxId count = do
+  res <- attempt <<< toAff $ runFn6 xpendingJ cacheConn key grpName (show minId) (show maxId) count
+  pure $ do
+    eres <- res
+    (fgnArr :: Array Foreign) <- (readArray >>> parseWithError) eres
+    (fgnArrs :: Array (Array Foreign)) <- traverse (readArray >>> parseWithError) fgnArr
+    (pendingArr :: Array PendingTask) <- traverse readPendingTask fgnArrs
+    Right pendingArr
+
 -- Utility functions for parsing
 
 -- unsafePartial here as we expect redis to never give us an invalid entry ID
@@ -208,3 +236,27 @@ readItems v =
           keys    = snd <$> filter (fst >>> odd) indexed
           values  = snd <$> filter (fst >>> even) indexed
       Right $ zip keys values
+
+readGroupInfo :: Array Foreign -> Either Error GroupInfo
+readGroupInfo v = 
+  if ((odd $ length v) || (length v < 8))
+    then
+      Left $ error "unexpected number of keys + values"
+    else do
+      grpName <- maybe (Left $ error "No group name") (parseWithError <<< readString) $ v !! 1
+      numberOfConsumers <- maybe (Left $ error "No Consumers info") (parseWithError <<< readInt) $ v !! 3
+      numberOfPending <- maybe (Left $ error "No pending task info") (parseWithError <<< readInt) $ v !! 5
+      lastEntryId <- maybe (Left $ error "No lastEntryId") (parseWithError <<< map forceFromString <<< readString) $ v !! 7
+      Right $ GroupInfo grpName numberOfConsumers numberOfPending lastEntryId
+
+readPendingTask :: Array Foreign -> Either Error PendingTask
+readPendingTask v =
+  if ((odd $ length v) || (length v < 4))
+    then
+      Left $ error "unexpected number of keys + values"
+    else do
+      entryId <- maybe (Left $ error "No entryId") (parseWithError <<< map forceFromString <<< readString) $ v !! 0
+      consumer <- maybe (Left $ error "No consumer name") (parseWithError <<< readString) $ v !! 1
+      timeElapsedSinceDelivery <- maybe (Left $ error "No time value") (parseWithError <<< readInt) $ v !! 2
+      deliveryCount <- maybe (Left $ error "No delivery count") (parseWithError <<< readInt) $ v !! 3
+      Right $ PendingTask entryId consumer timeElapsedSinceDelivery deliveryCount
