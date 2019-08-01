@@ -55,3 +55,11 @@ exports["zincrbyJ"] = function (client, key, increment, member) {
 exports["zremJ"] = function (client, key, memberArr) {
   return client.zrem(key, memberArr);
 }
+
+exports["zpopminJ"] = function (client, key, count) {
+  return client.zpopmin(key, count);
+}
+
+exports["zpopmaxJ"] = function (client, key, count) {
+  return client.zpopmax(key, count);
+}

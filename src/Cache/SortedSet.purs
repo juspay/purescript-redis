@@ -4,6 +4,8 @@ module Cache.SortedSet
 , zrange
 , zincrby
 , zrem
+, zpopmax
+, zpopmin
 , ReturnOptions(..)
 , Score
 , Member
@@ -14,7 +16,8 @@ module Cache.SortedSet
 import Prelude
 
 import Cache.Internal (readStringMaybe)
-import Cache.Types (class CacheConn, SetOptions)
+import Cache.Stream (readItems)
+import Cache.Types (class CacheConn, SetOptions, Item)
 import Control.Promise (Promise, toAff)
 import Data.Array (foldl)
 import Data.Either (Either)
@@ -30,6 +33,8 @@ foreign import zaddJ :: forall a. Fn5 a String String String (Object String) (Pr
 foreign import zrangeJ :: forall a. Fn4 a String Int Int (Promise (Array Foreign))
 foreign import zincrbyJ :: forall a. Fn4 a String Number String (Promise String)
 foreign import zremJ :: forall a. Fn3 a String (Array String) (Promise Int)
+foreign import zpopminJ :: forall a. Fn3 a String Int (Promise (Array Foreign))
+foreign import zpopmaxJ :: forall a. Fn3 a String Int (Promise (Array Foreign))
 
 data ReturnOptions = Default
                 | Changed
@@ -56,3 +61,17 @@ zincrby cacheConn key increment member = attempt <<< map fromString <<< toAff $ 
 
 zrem :: forall a. CacheConn a => a -> Key -> Array Member -> Aff (Either Error Int)
 zrem cacheConn key memberArr = attempt <<< toAff $ runFn3 zremJ cacheConn key memberArr
+
+zpopmin :: forall a. CacheConn a => a -> Key -> Int -> Aff (Either Error (Array Item))
+zpopmin cacheConn key memberArr = do
+  res <- attempt <<< toAff $ runFn3 zpopminJ cacheConn key memberArr
+  pure do
+    response <- res
+    readItems response
+
+zpopmax :: forall a. CacheConn a => a -> Key -> Int -> Aff (Either Error (Array Item))
+zpopmax cacheConn key memberArr = do
+  res <- attempt <<< toAff $ runFn3 zpopmaxJ cacheConn key memberArr
+  pure do
+    response <- res
+    readItems response
