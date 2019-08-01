@@ -30,15 +30,22 @@ sortedSetTest cacheConn =
         v2 <- zadd cacheConn testKey IfExist Changed [ Tuple 2.0 testId, Tuple 3.0 testId1 ]
         v3 <- zrange cacheConn testKey 0 2
         v4 <- zincrby cacheConn testKey 2.0 testId
-        v5 <- zrem cacheConn testKey [testId, testId1]
 
         checkValue v0 2
         checkValue v1 0
         checkValue v2 2
         checkValue v3 [Just testId, Just testId1]
         checkValue v4 (Just 4.0)
-        checkValue v5 2
 
+        v5 <- zpopmax cacheConn testKey 1
+        checkValue v5 [ Tuple testId "4" ]
+
+        v6 <- zpopmin cacheConn testKey 1
+        checkValue v6 [ Tuple testId1 "3" ]
+
+        _ <- zadd cacheConn testKey IfNotExist Changed [ Tuple 2.0 testId, Tuple 3.0 testId1 ]
+        v7 <- zrem cacheConn testKey [testId, testId1]
+        checkValue v7 2
         -- Clean up
         _  <- del cacheConn $ singleton testKey
         pure unit

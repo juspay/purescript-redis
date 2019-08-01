@@ -17,6 +17,7 @@ module Cache.Stream
   , xrevrange
   , xtrim
   , xinfogroups
+  , readItems
   ) where
 
 import Cache.Stream.Internal
