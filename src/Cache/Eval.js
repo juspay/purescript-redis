@@ -9,6 +9,6 @@ exports["defineCommandJ"] = function (client, scriptName, numberOfKeys, script) 
 
 exports["runCommandJ"] = function (client, scriptName, keys, args) {
   var allArgs = keys;
-  allArgs.push(args);
+  allArgs = allArgs.concat(args);
   return client[scriptName].apply(client, allArgs);
 }
