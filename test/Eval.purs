@@ -9,7 +9,6 @@ import Control.Monad.Except (runExcept)
 import Data.Array.NonEmpty (singleton)
 import Data.Either (Either(..), either)
 import Data.Tuple (Tuple(..))
-import Foreign (unsafeToForeign)
 import Foreign.Generic (decode)
 import Test.Internal (checkRight, checkValue)
 import Test.Spec (Spec, describe, it)
@@ -43,9 +42,9 @@ evalTest cacheConn =
         Right val -> 
           decode val
           # runExcept
-          # either (const $ fail "Not expected") 
+          # either (const $ fail "Value not an integer") 
             (\(x::Int) -> if x == 2 then pure unit
-                else fail "Value not set"
+                else fail $ "bad value " <> show x
             )
         Left err -> fail $ show err
 
