@@ -9,6 +9,7 @@ import Data.Options ((:=))
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff)
 import Test.Basic (basicTest)
+import Test.Eval (evalTest)
 import Test.Hash (hashTest)
 import Test.List (listTest)
 import Test.Multi (multiTest)
@@ -36,6 +37,7 @@ startTest = do
               streamTest cacheConn
               pubsubTest cacheConn
               sortedSetTest cacheConn
+              evalTest cacheConn
            Left err        -> do
               it "fails" do
                  fail $ show err
@@ -49,6 +51,7 @@ startTest = do
               multiTest cacheConn
               streamTest cacheConn
               sortedSetTest cacheConn
+              evalTest cacheConn
            Left err        -> do
               it "fails" do
                  fail $ show err
