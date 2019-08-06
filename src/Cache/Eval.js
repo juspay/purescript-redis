@@ -12,3 +12,9 @@ exports["runCommandJ"] = function (client, scriptName, keys, args) {
   allArgs = allArgs.concat(args);
   return client[scriptName].apply(client, allArgs);
 }
+
+exports["evalJ"] = function (client, script, keys, args) {
+  var allArgs = [ script, keys.length ];
+  allArgs = allArgs.concat(keys).concat(args);
+  return client.eval(allArgs);
+}
