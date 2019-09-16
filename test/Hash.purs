@@ -1,9 +1,10 @@
 module Test.Hash where
 
 import Cache (class CacheConn, del)
-import Cache.Hash (hget, hgetall, hincrby, hset, hsetnx)
+import Cache.Hash (hget, hgetall, hincrby, hmget, hmset, hset, hsetnx)
 import Data.Array.NonEmpty (singleton)
 import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple(..))
 import Foreign.Object (insert, singleton) as Object
 import Prelude (Unit, bind, discard, pure, unit, ($))
 import Test.Internal (checkValue)
@@ -42,6 +43,12 @@ hashTest cacheConn =
 
         v8 <- hincrby cacheConn testKey "foonx" 2
         checkValue v8 3
+
+        v9 <- hmset cacheConn testKey [Tuple "f1" "1", Tuple "f2" "2"]
+        checkValue v9 true
+
+        v10 <- hmget cacheConn testKey ["foo", "f1", "f3"]
+        checkValue v10 [ Just "1", Just "1", Nothing ]
         
         -- Clean up
         _  <- del cacheConn $ singleton testKey

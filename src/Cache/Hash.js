@@ -44,3 +44,11 @@ exports["hgetallJ"] = function (client, key) {
 exports["hincrbyJ"] = function (client, key, field, increment) {
   return client.hincrby(key, field, increment);
 }
+
+exports["hmsetJ"] = function (client, key, fieldArr) {
+  return client.hmset(key, fieldArr);
+}
+
+exports["hmgetJ"] = function (client, key, fieldArr) {
+  return client.hmget(key, fieldArr);
+}
