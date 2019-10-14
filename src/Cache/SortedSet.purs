@@ -7,6 +7,7 @@ module Cache.SortedSet
 , zpopmax
 , zpopmin
 , zrangebyscore
+, zrangebyscoreWScore
 , zremrangebyscore
 , ReturnOptions(..)
 , Score
@@ -38,7 +39,7 @@ foreign import zincrbyJ :: forall a. Fn4 a String Number String (Promise String)
 foreign import zremJ :: forall a. Fn3 a String (Array String) (Promise Int)
 foreign import zpopminJ :: forall a. Fn3 a String Int (Promise (Array Foreign))
 foreign import zpopmaxJ :: forall a. Fn3 a String Int (Promise (Array Foreign))
-foreign import zrangebyscoreJ :: forall a. Fn4 a String String String (Promise (Array Foreign))
+foreign import zrangebyscoreJ :: forall a. Fn5 a String String String (Array String) (Promise (Array Foreign))
 foreign import zremrangebyscoreJ :: forall a. Fn4 a String String String (Promise Int)
 
 data ReturnOptions = Default
@@ -94,7 +95,14 @@ instance showIntervalOption :: Show IntervalOption where
 
 zrangebyscore :: forall a. CacheConn a => a -> Key -> IntervalOption -> IntervalOption -> Aff (Either Error (Array (Maybe String)))
 zrangebyscore cacheConn key min max =
-  attempt <<< map (map readStringMaybe) <<< toAff $ runFn4 zrangebyscoreJ cacheConn key (show min) (show max)
+  attempt <<< map (map readStringMaybe) <<< toAff $ runFn5 zrangebyscoreJ cacheConn key (show min) (show max) []
+
+zrangebyscoreWScore :: forall a. CacheConn a => a -> Key -> IntervalOption -> IntervalOption -> Aff (Either Error (Array Item))
+zrangebyscoreWScore cacheConn key min max = do
+  res <- attempt <<< toAff $ runFn5 zrangebyscoreJ cacheConn key (show min) (show max) ["WITHSCORES"]
+  pure do
+    response <- res
+    readItems response
 
 zremrangebyscore :: forall a. CacheConn a => a -> Key -> IntervalOption -> IntervalOption -> Aff (Either Error Int)
 zremrangebyscore cacheConn key min max =
