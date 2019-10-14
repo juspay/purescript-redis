@@ -29,12 +29,16 @@ sortedSetTest cacheConn =
         v1 <- zadd cacheConn testKey IfNotExist Default [ Tuple 1.0 testId ]
         v2 <- zadd cacheConn testKey IfExist Changed [ Tuple 2.0 testId, Tuple 3.0 testId1 ]
         v3 <- zrange cacheConn testKey 0 2
+        zrangeRes <- zrangebyscore cacheConn testKey MinusInfinity PlusInfinity
+        zrangePartial <- zrangebyscore cacheConn testKey (Excluding 2.0) (Including 3.0)
         v4 <- zincrby cacheConn testKey 2.0 testId
 
         checkValue v0 2
         checkValue v1 0
         checkValue v2 2
         checkValue v3 [Just testId, Just testId1]
+        checkValue zrangeRes [Just testId, Just testId1]
+        checkValue zrangePartial [Just testId1]
         checkValue v4 (Just 4.0)
 
         v5 <- zpopmax cacheConn testKey 1
@@ -46,6 +50,14 @@ sortedSetTest cacheConn =
         _ <- zadd cacheConn testKey IfNotExist Changed [ Tuple 2.0 testId, Tuple 3.0 testId1 ]
         v7 <- zrem cacheConn testKey [testId, testId1]
         checkValue v7 2
+
+        _ <- zadd cacheConn testKey IfNotExist Changed [ Tuple 2.0 testId, Tuple 3.0 testId1 ]
+        zremrangeRes <- zremrangebyscore cacheConn testKey (Excluding 2.0) (Including 3.0)
+        checkValue zremrangeRes 1
+        -- Check which value was deleted by zremrangebyscore
+        allValues <- zrangebyscore cacheConn testKey MinusInfinity PlusInfinity
+        checkValue allValues [Just testId]
+
         -- Clean up
         _  <- del cacheConn $ singleton testKey
         pure unit
