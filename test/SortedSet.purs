@@ -31,6 +31,7 @@ sortedSetTest cacheConn =
         v3 <- zrange cacheConn testKey 0 2
         zrangeRes <- zrangebyscore cacheConn testKey MinusInfinity PlusInfinity
         zrangePartial <- zrangebyscore cacheConn testKey (Excluding 2.0) (Including 3.0)
+        zrangeWScore <- zrangebyscoreWScore cacheConn testKey MinusInfinity PlusInfinity
         v4 <- zincrby cacheConn testKey 2.0 testId
 
         checkValue v0 2
@@ -39,6 +40,7 @@ sortedSetTest cacheConn =
         checkValue v3 [Just testId, Just testId1]
         checkValue zrangeRes [Just testId, Just testId1]
         checkValue zrangePartial [Just testId1]
+        checkValue zrangeWScore [Tuple testId "2", Tuple testId1 "3"]
         checkValue v4 (Just 4.0)
 
         v5 <- zpopmax cacheConn testKey 1

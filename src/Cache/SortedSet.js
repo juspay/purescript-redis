@@ -64,8 +64,8 @@ exports["zpopmaxJ"] = function (client, key, count) {
   return client.zpopmax(key, count);
 }
 
-exports["zrangebyscoreJ"] = function (client, key, start, stop) {
-  return client.zrangebyscore(key, start, stop);
+exports["zrangebyscoreJ"] = function (client, key, start, stop, options) {
+  return client.zrangebyscore([key, start, stop].concat(options));
 }
 
 exports["zremrangebyscoreJ"] = function (client, key, start, stop) {
