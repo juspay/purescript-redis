@@ -89,6 +89,11 @@ var setJ = function(client) {
   }
 }
 
+var keysJ = function(client) {
+  return function(key) {
+    return client.keys(key);
+  };
+};
 var getKeyJ = function(client) {
   return function(key) {
     return client.get(key);
@@ -115,6 +120,12 @@ var incrJ = function(client) {
   }
 }
 
+var decrJ = function(client) {
+  return function(key) {
+    return client.decr(key, callback);
+  }
+}
+
 var callback = function(err, value) { return; }
 
 var setHashJ = function(client) {
@@ -125,11 +136,27 @@ var setHashJ = function(client) {
   }
 }
 
+var setHashIncrByJ = function(client) {
+  return function(hash) {
+    return function(field) {
+      return function(by) {
+        return client.hincrby(hash,field,by);
+      }
+    }
+  }
+}
+
 var getHashKeyJ = function(client) {
   return function(key) {
     return function(field) {
       return client.hget(key, field, callback);
     }
+  }
+}
+
+var getHashAllJ = function(client) {
+  return function(key) {
+    return client.hgetall(key, callback);
   }
 }
 
@@ -172,14 +199,18 @@ var setMessageHandlerJ = function (client) {
 
 exports._newCache = _newCache;
 exports.setJ = setJ;
+exports.keysJ = keysJ;
 exports.setKeyJ = setKeyJ;
 exports.getKeyJ = getKeyJ;
 exports.setexJ = setexJ;
 exports.delKeyJ = delKeyJ;
 exports.expireJ = expireJ;
 exports.incrJ = incrJ;
+exports.decrJ = decrJ;
 exports.setHashJ = setHashJ;
 exports.getHashKeyJ = getHashKeyJ;
+exports.getHashAllJ = getHashAllJ;
+exports.setHashIncrByJ = setHashIncrByJ;
 exports.publishToChannelJ = publishToChannelJ;
 exports.subscribeJ = subscribeJ;
 exports.setMessageHandlerJ = setMessageHandlerJ;
