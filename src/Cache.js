@@ -87,6 +87,10 @@ exports["getJ"] = function(client, key) {
   return client.get(key);
 };
 
+exports["getTTLJ"] = function(client, key) {
+  return client.ttl(key);
+};
+
 exports["existsJ"] = function(client, key) {
   return client.exists(key);
 };

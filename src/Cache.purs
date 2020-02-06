@@ -27,6 +27,7 @@ module Cache
  , exists
  , expire
  , get
+ , getTTL
  , host
  , incr
  , incrby
@@ -74,6 +75,7 @@ retryStrategy = opt "retryStrategy"
 
 foreign import setJ :: forall a. Fn5 a String String String String (Promise Foreign)
 foreign import getJ :: forall a. Fn2 a String (Promise Foreign)
+foreign import getTTLJ :: forall a. Fn2 a String (Promise Foreign)
 foreign import existsJ :: forall a. Fn2 a String (Promise Int)
 foreign import delJ :: forall a. Fn2 a (Array String) (Promise Int)
 foreign import expireJ :: forall a. Fn3 a String Int (Promise Int)
@@ -104,6 +106,9 @@ set cacheConn key value mExp opts =
 
 get :: forall a. CacheConn a => a -> String -> Aff (Either Error (Maybe String))
 get cacheConn key = attempt <<< map readStringMaybe <<< toAff $ runFn2 getJ cacheConn key
+
+getTTL :: forall a. CacheConn a => a -> String -> Aff (Either Error (Maybe String))
+getTTL cacheConn key = attempt <<< map readStringMaybe <<< toAff $ runFn2 getTTLJ cacheConn key
 
 exists :: forall a. CacheConn a => a -> String -> Aff (Either Error Boolean)
 exists cacheConn = attempt <<< map isNotZero <<< toAff <<< runFn2 existsJ cacheConn
