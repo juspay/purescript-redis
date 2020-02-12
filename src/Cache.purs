@@ -75,7 +75,7 @@ retryStrategy = opt "retryStrategy"
 
 foreign import setJ :: forall a. Fn5 a String String String String (Promise Foreign)
 foreign import getJ :: forall a. Fn2 a String (Promise Foreign)
-foreign import getTTLJ :: forall a. Fn2 a String (Effect (Promise (Maybe String)))
+foreign import getTTLJ :: forall a. Fn2 a String (Effect (Promise Int))
 foreign import existsJ :: forall a. Fn2 a String (Promise Int)
 foreign import delJ :: forall a. Fn2 a (Array String) (Promise Int)
 foreign import expireJ :: forall a. Fn3 a String Int (Promise Int)
@@ -107,7 +107,7 @@ set cacheConn key value mExp opts =
 get :: forall a. CacheConn a => a -> String -> Aff (Either Error (Maybe String))
 get cacheConn key = attempt <<< map readStringMaybe <<< toAff $ runFn2 getJ cacheConn key
 
-getTTL :: forall a. CacheConn a => a -> String -> Aff (Either Error (Maybe String))
+getTTL :: forall a. CacheConn a => a -> String -> Aff (Either Error Int)
 getTTL cacheConn key = attempt <<< toAffE $ runFn2 getTTLJ cacheConn key
 
 exists :: forall a. CacheConn a => a -> String -> Aff (Either Error Boolean)
