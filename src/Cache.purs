@@ -43,7 +43,7 @@ module Cache
 
 import Cache.Internal (isNotZero, readStringMaybe)
 import Cache.Types (class CacheConn, SetOptions(..), SimpleConn, SimpleConnOpts)
-import Control.Promise (Promise, toAff)
+import Control.Promise (Promise, toAff, toAffE)
 import Data.Array.NonEmpty (NonEmptyArray, toArray)
 import Data.Either (Either)
 import Data.Function.Uncurried (Fn2, Fn3, Fn5, runFn2, runFn3, runFn5)
@@ -75,7 +75,7 @@ retryStrategy = opt "retryStrategy"
 
 foreign import setJ :: forall a. Fn5 a String String String String (Promise Foreign)
 foreign import getJ :: forall a. Fn2 a String (Promise Foreign)
-foreign import getTTLJ :: forall a. Fn2 a String  (Promise (Maybe String))
+foreign import getTTLJ :: forall a. Fn2 a String (Effect (Promise (Maybe String)))
 foreign import existsJ :: forall a. Fn2 a String (Promise Int)
 foreign import delJ :: forall a. Fn2 a (Array String) (Promise Int)
 foreign import expireJ :: forall a. Fn3 a String Int (Promise Int)
@@ -108,7 +108,7 @@ get :: forall a. CacheConn a => a -> String -> Aff (Either Error (Maybe String))
 get cacheConn key = attempt <<< map readStringMaybe <<< toAff $ runFn2 getJ cacheConn key
 
 getTTL :: forall a. CacheConn a => a -> String -> Aff (Either Error (Maybe String))
-getTTL cacheConn key = attempt <<< toAff $ runFn2 getTTLJ cacheConn key
+getTTL cacheConn key = attempt <<< toAffE $ runFn2 getTTLJ cacheConn key
 
 exists :: forall a. CacheConn a => a -> String -> Aff (Either Error Boolean)
 exists cacheConn = attempt <<< map isNotZero <<< toAff <<< runFn2 existsJ cacheConn
