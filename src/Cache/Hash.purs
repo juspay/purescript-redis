@@ -43,7 +43,7 @@ hset :: forall a. CacheConn a => a -> String -> String -> String -> Aff (Either 
 hset cacheConn key field value = attempt <<< map isNotZero <<< toAff $ runFn4 hsetJ cacheConn key field value
 
 hdel :: forall a. CacheConn a => a -> String -> String -> Aff (Either Error Boolean)
-hdel cacheConn key field = attempt <<< map isNotZero <<< toAff $ runFn4 hdelJ cacheConn key field
+hdel cacheConn key field = attempt <<< map isNotZero <<< toAff $ runFn3 hdelJ cacheConn key field
 
 hmset :: forall a. CacheConn a => a -> String -> Array (Tuple String String) -> Aff (Either Error Boolean)
 hmset cacheConn key valArr = attempt <<< map isOk <<< toAff $ runFn3 hmsetJ cacheConn key (flattenArr valArr)
