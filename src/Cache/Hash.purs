@@ -1,6 +1,7 @@
 module Cache.Hash
   ( hget
   , hset
+  , hdel
   , hsetnx
   , hgetall
   , hincrby
@@ -24,6 +25,7 @@ foreign import hgetJ :: forall a. Fn3 a String String (Promise Foreign)
 foreign import hmgetJ :: forall a. Fn3 a String (Array String) (Promise (Array Foreign))
 foreign import hgetallJ :: forall a. Fn2 a String (Promise (Object String))
 foreign import hsetJ :: forall a. Fn4 a String String String (Promise Int)
+foreign import hdelJ :: forall a. Fn3 a String String (Promise Int)
 foreign import hmsetJ :: forall a. Fn3 a String (Array String) (Promise String)
 foreign import hsetnxJ :: forall a. Fn4 a String String String (Promise Int)
 foreign import hincrbyJ :: forall a. Fn4 a String String Int (Promise Int)
@@ -39,6 +41,9 @@ hgetall cacheConn key = attempt <<< toAff $ runFn2 hgetallJ cacheConn key
 
 hset :: forall a. CacheConn a => a -> String -> String -> String -> Aff (Either Error Boolean)
 hset cacheConn key field value = attempt <<< map isNotZero <<< toAff $ runFn4 hsetJ cacheConn key field value
+
+hdel :: forall a. CacheConn a => a -> String -> String -> Aff (Either Error Boolean)
+hdel cacheConn key field = attempt <<< map isNotZero <<< toAff $ runFn4 hdelJ cacheConn key field
 
 hmset :: forall a. CacheConn a => a -> String -> Array (Tuple String String) -> Aff (Either Error Boolean)
 hmset cacheConn key valArr = attempt <<< map isOk <<< toAff $ runFn3 hmsetJ cacheConn key (flattenArr valArr)
