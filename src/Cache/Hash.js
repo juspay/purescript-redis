@@ -34,7 +34,7 @@ exports["hgetJ"] = function(client, key, field) {
 }
 
 exports["hdelJ"] = function(client, key, field) {
-  return client.hdelJ(key, field);
+  return client.hdel(key, field);
 }
 
 exports["hsetnxJ"] = function (client, key, field, value) {
