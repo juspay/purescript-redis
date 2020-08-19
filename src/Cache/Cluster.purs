@@ -2,6 +2,7 @@ module Cache.Cluster
   ( clusterRetryStrategy
   , enableReadyCheck
   , newClusterConn
+  , password
   , scaleReads
   ) where
 
@@ -16,6 +17,9 @@ import Prelude (($), (<<<))
 
 clusterRetryStrategy :: Option ClusterConnOpts String
 clusterRetryStrategy = opt "clusterRetryStrategy"
+
+password :: Option ClusterConnOpts String
+password = opt "password"
 
 enableReadyCheck :: Option ClusterConnOpts Boolean
 enableReadyCheck = opt "enableReadyCheck"

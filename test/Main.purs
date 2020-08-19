@@ -33,7 +33,7 @@ startTest = do
     mpassword <- (liftEffect $ lookupEnv "REDIS_PASSWORD")
     let cacheOpts = C.host := host <> C.port := port <> C.db := db <> C.socketKeepAlive := true <> maybe mempty (assoc C.password) mpassword
     eCacheConn <- C.newConn cacheOpts
-    eClusterConn <- Cluster.newClusterConn [{ host: host, port: port }] mempty
+    eClusterConn <- Cluster.newClusterConn [{ host: host, port: port }] (maybe mempty (assoc Cluster.password) mpassword)
     runSpec [consoleReporter] do
        describe "Simple connection"
          case eCacheConn of
