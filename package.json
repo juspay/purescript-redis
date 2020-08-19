@@ -1,24 +1,29 @@
 {
-  "name": "purescript-redis",
-  "version": "1.0.0",
-  "description": "purescript wrapper for ioredis",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/juspay/purescript-redis"
-  },
-  "keywords": [
-    "redis",
-    "ioredis"
-  ],
-  "author": "iamnewspecies",
-  "license": "https://github.com/juspay/purescript-redis/blob/master/LICENSE",
-  "homepage": "https://github.com/juspay/purescript-redis/README.md",
-  "dependencies": {
-    "big-integer": "^1.6.43",
-    "ioredis": "^4.11.2"
-  }
+    "name": "purescript-redis",
+    "version": "1.0.0",
+    "description": "purescript wrapper for ioredis",
+    "main": "index.js",
+    "scripts": {
+        "test": "pulp test",
+        "build": "pulp build"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/juspay/purescript-redis"
+    },
+    "keywords": [
+        "redis",
+        "ioredis"
+    ],
+    "author": "iamnewspecies",
+    "license": "https://github.com/juspay/purescript-redis/blob/master/LICENSE",
+    "homepage": "https://github.com/juspay/purescript-redis/README.md",
+    "dependencies": {
+        "big-integer": "^1.6.43",
+        "ioredis": "^4.11.2"
+    },
+    "devDependencies": {
+        "pulp": "12.3.0",
+        "purescript": "0.12.0"
+    }
 }

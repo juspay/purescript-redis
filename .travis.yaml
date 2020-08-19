@@ -1,0 +1,9 @@
+language: node_js
+node_js:
+  - 8.11.1
+install:
+    - export NODE_ENV=dev
+    - npm ci
+    - npm run build --if-present
+script:
+    - npm test
