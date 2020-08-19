@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "test": "pulp test",
-        "build": "pulp build"
+        "build": "bower i;pulp build"
     },
     "repository": {
         "type": "git",
@@ -24,6 +24,7 @@
     },
     "devDependencies": {
         "pulp": "12.3.0",
-        "purescript": "0.12.0"
+        "purescript": "0.12.0",
+        "bower": "1.8.8"
     }
 }
