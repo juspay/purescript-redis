@@ -32,6 +32,7 @@ module Cache
  , incr
  , incrby
  , newConn
+ , password
  , port
  , publish
  , retryStrategy
@@ -66,6 +67,9 @@ port = opt "port"
 
 db :: Option SimpleConnOpts Int
 db = opt "db"
+
+password :: Option SimpleConnOpts String
+password = opt "password"
 
 socketKeepAlive :: Option SimpleConnOpts Boolean
 socketKeepAlive = opt "keepAlive"
