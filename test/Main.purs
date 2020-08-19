@@ -25,7 +25,7 @@ startTest :: Aff Unit
 startTest = do
     let cacheOpts = C.host := "127.0.0.1" <> C.port := 6379 <> C.db := 0 <> C.socketKeepAlive := true
     eCacheConn <- C.newConn cacheOpts
-    eClusterConn <- Cluster.newClusterConn [{ host: "127.0.0.1", port: 7000 }] mempty
+    -- eClusterConn <- Cluster.newClusterConn [{ host: "127.0.0.1", port: 7000 }] mempty
     runSpec [consoleReporter] do
        describe "Simple connection"
          case eCacheConn of
@@ -42,19 +42,19 @@ startTest = do
               it "fails" do
                  fail $ show err
 
-       describe "Cluster connection"
-         case eClusterConn of
-           Right cacheConn -> do
-              basicTest cacheConn
-              listTest cacheConn
-              hashTest cacheConn
-              multiTest cacheConn
-              streamTest cacheConn
-              sortedSetTest cacheConn
-              evalTest cacheConn
-           Left err        -> do
-              it "fails" do
-                 fail $ show err
+       -- describe "Cluster connection"
+       --   case eClusterConn of
+       --     Right cacheConn -> do
+       --        basicTest cacheConn
+       --        listTest cacheConn
+       --        hashTest cacheConn
+       --        multiTest cacheConn
+       --        streamTest cacheConn
+       --        sortedSetTest cacheConn
+       --        evalTest cacheConn
+       --     Left err        -> do
+       --        it "fails" do
+       --           fail $ show err
 
 main :: Effect Unit
 main = launchAff startTest *> pure unit
