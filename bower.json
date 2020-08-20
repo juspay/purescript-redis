@@ -21,6 +21,18 @@
   ],
   "dependencies": {
     "purescript-aff-promise": "^2.0.0",
-    "purescript-options": "^4.0.0"
+    "purescript-options": "^4.0.0",
+    "purescript-foreign-generic": "^10.0.0",
+    "purescript-bigints": "^4.0.0",
+    "purescript-numbers": "^7.0.0",
+    "purescript-node-process": "^6.0.0"
+  },
+  "resolutions": {
+    "purescript-foreign-object": "^1.0.0",
+    "purescript-typelevel-prelude": "^3.0.0"
+  },
+  "devDependencies": {
+    "purescript-debug": "^4.0.0",
+    "purescript-spec": "^4.0.0"
   }
 }
