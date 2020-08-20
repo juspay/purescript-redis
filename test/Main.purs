@@ -8,6 +8,7 @@ import Data.Either (Either(..))
 import Data.Int (fromString)
 import Data.Maybe (fromMaybe, maybe)
 import Data.Options (assoc, (:=))
+import Data.String (toLower)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff)
 import Effect.Class (liftEffect)
@@ -37,6 +38,7 @@ startTest = do
     cport <- (fromMaybe 7000 <<< fromString <<< fromMaybe "7000") <$> (liftEffect $ lookupEnv "REDIS_CLUSTER_PORT")
     cmpassword <- (liftEffect $ lookupEnv "REDIS_CLUSTER_PASSWORD")
     eClusterConn <- Cluster.newClusterConn [{ host: chost, port: cport }] (maybe mempty (assoc Cluster.password) cmpassword)
+    skipClusterTest <- (toBoolean <<<fromMaybe "false") <$> (liftEffect $ lookupEnv "SKIP_CLUSTER_TEST")
     runSpec [consoleReporter] do
        describe "Simple connection"
          case eCacheConn of
@@ -54,7 +56,10 @@ startTest = do
                  fail $ show err
 
        describe "Cluster connection"
-         case eClusterConn of
+         if skipClusterTest then
+           pure unit
+
+         else case eClusterConn of
            Right cacheConn -> do
               basicTest cacheConn
               listTest cacheConn
@@ -69,3 +74,9 @@ startTest = do
 
 main :: Effect Unit
 main = launchAff startTest *> pure unit
+
+
+toBoolean :: String -> Boolean
+toBoolean s = case toLower s of
+  "true" -> true
+  _ -> false
