@@ -74,12 +74,16 @@ zipkinServiceName = opt "zipkinServiceName"
 foreign import setJ :: CacheConn -> Array String -> Promise String
 foreign import setKeyJ :: CacheConn -> String -> String -> Promise String
 foreign import getKeyJ :: CacheConn -> String -> Promise String
+foreign import keysJ :: CacheConn -> String -> Promise (Array String)
 foreign import setexJ :: CacheConn -> String -> String -> String -> Promise String
 foreign import delKeyJ :: CacheConn -> Array String -> Promise String
 foreign import expireJ :: CacheConn -> String -> String -> Promise String
 foreign import incrJ :: CacheConn -> String -> Promise String
+foreign import decrJ :: CacheConn -> String -> Promise String
 foreign import setHashJ :: CacheConn -> String -> String -> Promise String
 foreign import getHashKeyJ :: CacheConn -> String -> String -> Promise String
+foreign import getHashAllJ :: CacheConn -> String -> Promise Foreign
+foreign import setHashIncrByJ :: CacheConn -> String -> String -> Int -> Promise String
 foreign import publishToChannelJ :: CacheConn -> String -> String -> Promise String
 foreign import subscribeJ :: CacheConn -> String -> Promise String
 foreign import setMessageHandlerJ :: CacheConn -> (String -> String -> Effect Unit) -> Effect (Promise String)
@@ -100,6 +104,12 @@ setex cacheConn key value ttl = attempt $ toAff $ setexJ cacheConn key value ttl
 getKey :: CacheConn -> String -> Aff (Either Error String)
 getKey cacheConn key = attempt $ toAff $ getKeyJ cacheConn key
 
+getHashAll :: CacheConn -> String -> Aff (Either Error Foreign)
+getHashAll cacheConn key = attempt $ toAff $ getHashAllJ cacheConn key
+
+keys :: CacheConn -> String -> Aff (Either Error (Array String))
+keys cacheConn key = attempt $ toAff $ keysJ cacheConn key
+
 delKey :: CacheConn -> String -> Aff (Either Error String)
 delKey cacheConn key = attempt $ toAff $ delKeyJ cacheConn [key]
 
@@ -111,6 +121,12 @@ expire cacheConn key ttl = attempt $ toAff $ expireJ cacheConn key ttl
 
 incr :: CacheConn -> String -> Aff (Either Error String)
 incr cacheConn key = attempt $ toAff $ incrJ cacheConn key
+
+setHashIncrBy :: CacheConn -> String -> String -> Int -> Aff (Either Error String)
+setHashIncrBy cacheConn hash field increment = attempt $ toAff $ setHashIncrByJ cacheConn hash field increment
+
+decr :: CacheConn -> String -> Aff (Either Error String)
+decr cacheConn key = attempt $ toAff $ decrJ cacheConn key
 
 setHash :: CacheConn -> String -> String -> Aff (Either Error String)
 setHash cacheConn key value = attempt $ toAff $ setHashJ cacheConn key value
