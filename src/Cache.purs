@@ -35,6 +35,9 @@ foreign import data CacheConn :: Type
 
 data CacheConnOpts
 
+enableOfflineQueue :: Option CacheConnOpts Boolean
+enableOfflineQueue = opt "enableOfflineQueue"
+
 host :: Option CacheConnOpts String
 host = opt "host"
 
