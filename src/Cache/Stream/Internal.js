@@ -99,7 +99,7 @@ exports["xtrimJ"] = function(client, key, strategy, approx, len) {
 // Consumer group API
 
 exports["xgroupCreateJ"] = function(client, key, groupName, fromId) {
-  return dispatch(client, "xgroup", ["CREATE", key, groupName, fromId]);
+  return dispatch(client, "xgroup", ["CREATE", key, groupName, fromId, "MKSTREAM"]);
 }
 
 exports["xgroupDestroyJ"] = function(client, key, groupName) {
