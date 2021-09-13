@@ -13,7 +13,7 @@ import Data.Generic.Rep.Eq (genericEq)
 import Data.Maybe (fromMaybe)
 import Data.String (Pattern(..), split)
 import Data.Tuple (Tuple)
-import Prelude (class Eq, class Show, pure, show, ($), (<>), (>>=))
+import Prelude (class Eq, class Show, show, ($), (<$>), (<>), (>>=))
 
 -- Represent a JavaScript object on which we can use standard Redis commands as
 -- functions. The intention is to represent both single-node and cluster
@@ -73,14 +73,13 @@ instance encodeEntryID :: Encode EntryID where
   encode id = encode $ show id
 
 instance decodeEntryID :: Decode EntryID where
-  decode id = decode id >>= 
-                (\val -> pure $ case val of
-                            "*" ->  AutoID
-                            "$" ->  AfterLastID
-                            "-" ->  MinID
-                            "+" ->  MaxID
-                            ">" ->  NewID
-                            range -> decodeRange range )
+  decode id = (\val -> case val of
+                "*" -> AutoID
+                "$" -> AfterLastID
+                "-" -> MinID
+                "+" -> MaxID
+                ">" -> NewID
+                range -> decodeRange range ) <$> decode id
 
 
 decodeRange :: String -> EntryID
